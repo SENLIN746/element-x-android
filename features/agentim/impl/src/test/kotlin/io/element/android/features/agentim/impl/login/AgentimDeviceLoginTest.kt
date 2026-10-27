@@ -7,6 +7,7 @@ package io.element.android.features.agentim.impl.login
 
 import com.google.common.truth.Truth.assertThat
 import io.element.android.libraries.agentim.api.AgentimEnrollmentService
+import io.element.android.libraries.agentim.api.pairing.AgentimPairingGrant
 import io.element.android.libraries.matrix.api.auth.MatrixAuthenticationService
 import io.element.android.libraries.matrix.api.auth.MatrixHomeServerDetails
 import io.element.android.libraries.matrix.test.A_USER_ID
@@ -52,6 +53,15 @@ class AgentimDeviceLoginTest {
     fun `credential-bearing homeserver URLs are rejected before SDK discovery`() = runTest {
         assertThat(subject.login(request("https://user:secret@hs.example")).isFailure).isTrue()
         coVerify(exactly = 0) { authentication.setHomeserver(any()) }
+    }
+
+    @Test
+    fun `native credential handoff remains single use after uncertain login`() = runTest {
+        val grant = AgentimPairingGrant(A_USER_ID.value, "synthetic-pairing-grant")
+        coEvery { authentication.loginWithToken(any()) } returns Result.failure(IllegalStateException("synthetic lost reply"))
+        assertThat(subject.connect(grant).isFailure).isTrue()
+        assertThat(subject.connect(grant).isFailure).isTrue()
+        coVerify(exactly = 1) { authentication.loginWithToken("synthetic-pairing-grant") }
     }
 
     private fun request(homeserver: String) = AgentimLoginRequest(homeserver, "", "synthetic-admission", "agent", "Agent", true)

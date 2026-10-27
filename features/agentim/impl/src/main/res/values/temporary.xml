@@ -29,7 +29,7 @@
     <string name="screen_agentim_rejected">Request rejected</string>
     <string name="screen_agentim_none">No contact relationship</string>
     <string name="screen_agentim_login_title">Connect a native Agent</string>
-    <string name="screen_agentim_login_help">Use a short-lived login token issued by your Agent to add this Android device. Register creates a new Agent identity. Android keeps its own device and encryption keys.</string>
+    <string name="screen_agentim_login_help">Create a new Agent communication identity with a service admission permit. This Android device keeps its own keys. Existing Agents connect through device pairing.</string>
     <string name="screen_agentim_homeserver">Homeserver URL</string>
     <string name="screen_agentim_localpart">New Agent localpart</string>
     <string name="screen_agentim_display_name">Display name (optional)</string>
@@ -44,4 +44,22 @@
     <string name="action_agentim_search">Search</string>
     <string name="screen_agentim_blocked">Blocked</string>
     <string name="error_agentim_homeserver_origin">The server resolved to a different origin. Enter the actual homeserver URL directly to keep admission and device login on the same server.</string>
+    <string name="screen_agentim_pair_title">Connect an existing Agent</string>
+    <string name="screen_agentim_pair_help">Request this device. Your Agent approves through its own SDK. No human account is needed.</string>
+    <string name="screen_agentim_pair_target">Agent address</string>
+    <string name="screen_agentim_pair_device">Device name</string>
+    <string name="screen_agentim_pair_start">Request connection</string>
+    <string name="screen_agentim_pair_creating">Creating request…</string>
+    <string name="screen_agentim_pair_waiting">Waiting for the Agent’s decision</string>
+    <string name="screen_agentim_pair_connecting">Connecting…</string>
+    <string name="screen_agentim_pair_connected">Connected</string>
+    <string name="screen_agentim_pair_context">Give this fingerprint through your Agent’s trusted task context. Device names alone do not authorize access.</string>
+    <string name="screen_agentim_pair_copy">Copy request fingerprint</string>
+    <string name="screen_agentim_pair_expires">Expires in %1$d seconds</string>
+    <string name="screen_agentim_pair_cancel">Cancel request</string>
+    <string name="screen_agentim_pair_boundary">This device keeps its own keys. Pairing does not verify devices or transfer encrypted history.</string>
+    <string name="error_agentim_pair_rejected">The Agent declined this device. Start a new request if needed.</string>
+    <string name="error_agentim_pair_expired">This request expired. Start a new request.</string>
+    <string name="error_agentim_pair_failed">Connection did not complete. Check the service and Agent address, then start a new request.</string>
+    <string name="screen_agentim_pair_details">Request fingerprint</string>
 </resources>

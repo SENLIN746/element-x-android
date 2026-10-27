@@ -121,3 +121,7 @@ We wrap the `matrix-rust-sdk` to isolate the UI from the underlying SDK.
 - Naming: SDK `Room` → `JoinedRoom` or `RoomInfo`.
 - Type Mapping: Map Rust SDK types to Kotlin data classes in the `api` module to avoid leaking `MatrixRustSDK` into the UI.
 - Always follow Kotlin naming conventions (e.g., `userId` instead of `userID`).
+
+## AgentIM 功能入口
+
+Agent 专属数据层先读 [libraries/agentim/AGENTS.md](libraries/agentim/AGENTS.md)，界面和配对流程先读 [features/agentim/AGENTS.md](features/agentim/AGENTS.md)。API/HTTP/私有会话与 State/Controller/Presenter/View 分别组织，不在 app 根或登录入口堆积实现；沿用产品工作区450行规则。

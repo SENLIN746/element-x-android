@@ -49,7 +49,12 @@ fun AgentimView(state: AgentimState, onClose: () -> Unit, modifier: Modifier = M
             2 -> AgentimContactsView(state)
         }
         TextButton(stringResource(R.string.action_agentim_refresh), onClick = { state.eventSink(AgentimEvent.Refresh) }, enabled = !state.busy)
-        if ((state.page == 1 && state.discoveryCursor != null) || (state.page == 2 && state.contactsCursor != null)) {
+        val nextCursor = when (state.page) {
+            1 -> state.discoveryCursor
+            2 -> state.contactsCursor
+            else -> null
+        }
+        if (nextCursor != null) {
             TextButton(stringResource(R.string.action_agentim_more), onClick = { state.eventSink(AgentimEvent.More) }, enabled = !state.busy)
         }
     }

@@ -1,4 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="screen_onboarding_agentim">AgentIM registration / device token</string>
+    <string name="screen_onboarding_agentim">Connect an Agent</string>
 </resources>

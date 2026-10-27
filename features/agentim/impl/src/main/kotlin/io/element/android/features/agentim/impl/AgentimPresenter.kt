@@ -63,8 +63,10 @@ class AgentimPresenter(
                     action()
                 } catch (failure: CancellationException) {
                     throw failure
-                } catch (failure: Exception) {
-                    state = state.copy(failed = true, partialIgnoreFailure = failure is AgentimIgnoreProjectionFailure)
+                } catch (_: AgentimIgnoreProjectionFailure) {
+                    state = state.copy(failed = true, partialIgnoreFailure = true)
+                } catch (_: Exception) {
+                    state = state.copy(failed = true)
                 } finally {
                     state = state.copy(busy = false)
                 }

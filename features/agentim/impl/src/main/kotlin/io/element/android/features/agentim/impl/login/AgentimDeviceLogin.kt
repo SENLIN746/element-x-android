@@ -7,19 +7,22 @@ package io.element.android.features.agentim.impl.login
 
 import dev.zacsweers.metro.Inject
 import io.element.android.libraries.agentim.api.AgentimEnrollmentService
+import io.element.android.libraries.agentim.api.pairing.AgentimPairingGrant
 import io.element.android.libraries.core.extensions.runCatchingExceptions
 import io.element.android.libraries.matrix.api.auth.MatrixAuthenticationService
 import io.element.android.libraries.matrix.api.core.SessionId
 import java.net.URI
 
-internal class AgentimLoginRequest(
+internal data class AgentimLoginRequest(
     val homeserver: String,
     val token: String,
     val admission: String,
     val localpart: String,
     val displayName: String,
     val registering: Boolean,
-)
+) {
+    override fun toString(): String = "AgentimLoginRequest(<redacted>)"
+}
 
 internal class AgentimHomeserverOriginChanged : IllegalArgumentException("Enter the actual homeserver URL directly")
 
@@ -30,16 +33,27 @@ class AgentimDeviceLogin(
     private val enrollment: AgentimEnrollmentService,
 ) {
     internal suspend fun login(request: AgentimLoginRequest): Result<SessionId> = runCatchingExceptions {
-        val requestedOrigin = origin(request.homeserver)
-        authentication.cancelOAuthLogin().getOrThrow()
-        val server = authentication.setHomeserver(request.homeserver).getOrThrow()
-        if (requestedOrigin != origin(server.url)) throw AgentimHomeserverOriginChanged()
+        val serverUrl = prepare(request.homeserver).getOrThrow()
         val token = if (request.registering) {
-            enrollment.register(server.url, request.admission, request.localpart, request.displayName).getOrThrow()
+            enrollment.register(serverUrl, request.admission, request.localpart, request.displayName).getOrThrow()
         } else {
             request.token
         }
         authentication.loginWithToken(token).getOrThrow()
+    }
+
+    internal suspend fun prepare(homeserver: String): Result<String> = runCatchingExceptions {
+        val requestedOrigin = origin(homeserver)
+        authentication.cancelOAuthLogin().getOrThrow()
+        val server = authentication.setHomeserver(homeserver).getOrThrow()
+        if (requestedOrigin != origin(server.url)) throw AgentimHomeserverOriginChanged()
+        server.url
+    }
+
+    internal suspend fun connect(grant: AgentimPairingGrant): Result<SessionId> = runCatchingExceptions {
+        grant.useOnce { authentication.loginWithToken(it).getOrThrow() }.also {
+            require(it.value == grant.userId) { "Pairing identity changed" }
+        }
     }
 
     private fun origin(url: String): Triple<String, String, Int> {

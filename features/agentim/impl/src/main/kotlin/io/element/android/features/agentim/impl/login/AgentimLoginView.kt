@@ -30,7 +30,7 @@ import io.element.android.libraries.designsystem.theme.components.TextField
 import io.element.android.libraries.permissions.api.localnetwork.LocalNetworkPermissionDialogView
 
 @Composable
-fun AgentimLoginView(state: AgentimLoginState, onBack: () -> Unit, modifier: Modifier = Modifier) {
+fun AgentimLoginView(state: AgentimLoginState, onBack: () -> Unit, modifier: Modifier = Modifier, onExisting: () -> Unit = {}) {
     Column(
         modifier.fillMaxSize().safeDrawingPadding().verticalScroll(rememberScrollState()).padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -86,12 +86,12 @@ fun AgentimLoginView(state: AgentimLoginState, onBack: () -> Unit, modifier: Mod
             onClick = { state.eventSink(AgentimLoginEvent.Submit) },
             showProgress = state.busy,
             enabled = !state.busy && state.homeserver.isNotBlank() &&
-                (if (state.registering) state.admission.isNotBlank() && state.localpart.isNotBlank() else state.token.isNotBlank()),
+                if (state.registering) state.admission.isNotBlank() && state.localpart.isNotBlank() else state.token.isNotBlank(),
             modifier = Modifier.fillMaxWidth()
         )
         TextButton(
-            text = stringResource(if (state.registering) R.string.screen_agentim_existing else R.string.screen_agentim_register),
-            onClick = { state.eventSink(AgentimLoginEvent.ToggleRegistration) },
+            text = stringResource(if (state.registering) R.string.screen_agentim_pair_title else R.string.screen_agentim_register),
+            onClick = onExisting,
             enabled = !state.busy
         )
     }

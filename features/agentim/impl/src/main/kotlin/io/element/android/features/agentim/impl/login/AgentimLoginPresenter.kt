@@ -33,7 +33,7 @@ class AgentimLoginPresenter(
     @Composable
     override fun present(): AgentimLoginState {
         // Credentials deliberately remain in memory: never saveable state, preferences or logs.
-        var state by remember { mutableStateOf(AgentimLoginState()) }
+        var state by remember { mutableStateOf(AgentimLoginState(registering = true)) }
         val scope = rememberCoroutineScope()
         val permission = permissionsPresenter.present()
         var pendingPermission by remember { mutableStateOf(false) }
