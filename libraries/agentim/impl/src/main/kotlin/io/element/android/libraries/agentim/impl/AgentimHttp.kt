@@ -64,6 +64,7 @@ class AgentimHttp {
                 .method(method, body?.toString()?.toRequestBody("application/json".toMediaType())).build()
             client.newCall(request).execute().use { response ->
                 if (allowMissing && response.code == 404) return@withContext JSONObject()
+                if (response.code == 401) throw AgentimAuthenticationExpired()
                 if (!response.isSuccessful) throw IOException("AgentIM request failed (HTTP ${response.code})")
                 val source = response.body.source()
                 if (source.request(1_048_577)) throw IOException("AgentIM response exceeded its limit")
@@ -71,3 +72,6 @@ class AgentimHttp {
             }
         }
 }
+
+/** An explicit authentication rejection; no authorized write was performed. */
+internal class AgentimAuthenticationExpired : IOException("AgentIM authentication expired")

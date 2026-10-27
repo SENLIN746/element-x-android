@@ -7,10 +7,15 @@ package io.element.android.libraries.agentim.impl
 
 import dev.zacsweers.metro.Inject
 import io.element.android.libraries.matrix.api.MatrixClient
+import io.element.android.libraries.sessionstorage.api.SessionData
 import io.element.android.libraries.sessionstorage.api.SessionStore
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.withTimeoutOrNull
+import okhttp3.HttpUrl
 import org.json.JSONObject
 
-/** The current Android session supplies its own credentials exclusively within the data layer. */
+/** The current Android session supplies credentials; the SDK alone owns refresh. */
 @Inject
 class AgentimSessionHttp(
     private val matrixClient: MatrixClient,
@@ -21,13 +26,37 @@ class AgentimSessionHttp(
         check(it.isTokenValid) { "Session expired" }
     }
 
-    suspend fun request(path: List<String>, method: String = "GET", body: JSONObject? = null, query: Map<String, String?> = emptyMap()): JSONObject {
-        val session = session()
-        return http.request(http.endpoint(session.homeserverUrl, path, query), session.accessToken, method, body)
+    private suspend fun refreshed(previous: SessionData): SessionData? {
+        val updated = withTimeoutOrNull(5_000) {
+            sessionStore.sessionsFlow().map { sessions -> sessions.firstOrNull { it.userId == previous.userId } }
+                .first { it == null || !it.isTokenValid || it.accessToken != previous.accessToken }
+        }
+        return updated?.takeIf {
+            it.isTokenValid && it.userId == previous.userId && it.deviceId == previous.deviceId &&
+                it.homeserverUrl == previous.homeserverUrl && it.accessToken != previous.accessToken
+        }
     }
 
-    suspend fun ignoredUsers(method: String = "GET", body: JSONObject? = null): JSONObject {
-        val session = session()
-        return http.request(http.accountDataUrl(session.homeserverUrl, session.userId), session.accessToken, method, body, allowMissing = method == "GET")
+    private suspend fun authenticated(
+        method: String,
+        body: JSONObject?,
+        allowMissing: Boolean,
+        url: (SessionData) -> HttpUrl,
+    ): JSONObject {
+        val original = session()
+        val frozen = body?.let { JSONObject(it.toString()) }
+        return try {
+            http.request(url(original), original.accessToken, method, frozen, allowMissing)
+        } catch (expired: AgentimAuthenticationExpired) {
+            // Only explicit 401 is replayable: authorization precedes every supported write.
+            val current = refreshed(original) ?: throw expired
+            http.request(url(current), current.accessToken, method, frozen, allowMissing)
+        }
     }
+
+    suspend fun request(path: List<String>, method: String = "GET", body: JSONObject? = null, query: Map<String, String?> = emptyMap()): JSONObject =
+        authenticated(method, body, false) { http.endpoint(it.homeserverUrl, path, query) }
+
+    suspend fun ignoredUsers(method: String = "GET", body: JSONObject? = null): JSONObject =
+        authenticated(method, body, method == "GET") { http.accountDataUrl(it.homeserverUrl, it.userId) }
 }
