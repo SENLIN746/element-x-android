@@ -17,6 +17,9 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -56,8 +59,13 @@ fun ChooseSelfVerificationModeView(
     onUseRecoveryKey: () -> Unit,
     onResetKey: () -> Unit,
     onLearnMore: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onDeferSuccess: () -> Unit = {},
 ) {
+    val currentOnDeferSuccess by rememberUpdatedState(onDeferSuccess)
+    LaunchedEffect(state.deferAction) {
+        if (state.deferAction.isSuccess()) currentOnDeferSuccess()
+    }
     val activity = LocalActivity.current
     BackHandler {
         activity?.finish()
@@ -133,6 +141,13 @@ private fun ChooseSelfVerificationModeButtons(
     ButtonColumnMolecule(
         modifier = Modifier.padding(bottom = 16.dp)
     ) {
+        Text(stringResource(R.string.screen_identity_confirmation_defer_help))
+        TextButton(
+            text = stringResource(R.string.screen_identity_confirmation_defer),
+            enabled = !state.deferAction.isLoading(),
+            onClick = { state.eventSink(ChooseSelfVerificationModeEvent.DeferVerification) },
+        )
+        if (state.deferAction.isFailure()) Text(stringResource(R.string.error_identity_confirmation_defer))
         when (state.buttonsState) {
             AsyncData.Uninitialized,
             is AsyncData.Failure,

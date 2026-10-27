@@ -12,20 +12,27 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import dev.zacsweers.metro.Inject
 import io.element.android.features.logout.api.direct.DirectLogoutEvent
 import io.element.android.features.logout.api.direct.DirectLogoutState
+import io.element.android.libraries.architecture.AsyncAction
 import io.element.android.libraries.architecture.AsyncData
 import io.element.android.libraries.architecture.Presenter
+import io.element.android.libraries.architecture.runCatchingUpdatingState
 import io.element.android.libraries.core.coroutine.mapState
 import io.element.android.libraries.matrix.api.MatrixClient
 import io.element.android.libraries.matrix.api.encryption.EncryptionService
 import io.element.android.libraries.matrix.api.encryption.RecoveryState
+import io.element.android.libraries.preferences.api.store.SessionPreferencesStore
+import kotlinx.coroutines.launch
 
 @Inject
 class ChooseSelfVerificationModePresenter(
+    private val sessionPreferencesStore: SessionPreferencesStore,
     private val matrixClient: MatrixClient,
     private val encryptionService: EncryptionService,
     private val directLogoutPresenter: Presenter<DirectLogoutState>,
@@ -66,16 +73,26 @@ class ChooseSelfVerificationModePresenter(
             }
         }
 
+        val scope = rememberCoroutineScope()
+        val deferAction = remember { mutableStateOf<AsyncAction<Unit>>(AsyncAction.Uninitialized) }
         val directLogoutState = directLogoutPresenter.present()
 
         fun handleEvent(event: ChooseSelfVerificationModeEvent) {
             when (event) {
+                ChooseSelfVerificationModeEvent.DeferVerification -> {
+                    if (!deferAction.value.isLoading() && !deferAction.value.isSuccess()) {
+                        scope.launch {
+                            suspend { sessionPreferencesStore.setSkipSessionVerification(true) }.runCatchingUpdatingState(deferAction)
+                        }
+                    }
+                }
                 ChooseSelfVerificationModeEvent.SignOut -> directLogoutState.eventSink(DirectLogoutEvent.Logout(ignoreSdkError = false))
             }
         }
 
         return ChooseSelfVerificationModeState(
             currentUser = currentUser,
+            deferAction = deferAction.value,
             buttonsState = buttonsState,
             directLogoutState = directLogoutState,
             eventSink = ::handleEvent,

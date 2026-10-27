@@ -34,6 +34,25 @@ import org.junit.Test
 
 class DefaultFtueServiceTest {
     @Test
+    fun `persisted explicit deferral survives restart without marking the session verified`() = runTest {
+        val verification = FakeSessionVerificationService().apply { emitVerifiedStatus(SessionVerifiedStatus.NotVerified) }
+        val preferences = InMemorySessionPreferencesStore().apply { setSkipSessionVerification(true) }
+        val lockscreen = FakeLockScreenService().apply { setIsPinSetup(true) }
+        val service = createDefaultFtueService(
+            sessionVerificationService = verification,
+            sessionPreferencesStore = preferences,
+            analyticsService = NoopAnalyticsService(),
+            permissionStateProvider = FakePermissionStateProvider(permissionGranted = true),
+            lockScreenService = lockscreen,
+        )
+        service.state.test {
+            assertThat(awaitItem()).isEqualTo(FtueState.Unknown)
+            assertThat(awaitItem()).isEqualTo(FtueState.Complete)
+            assertThat(verification.sessionVerifiedStatus.value).isEqualTo(SessionVerifiedStatus.NotVerified)
+        }
+    }
+
+    @Test
     fun `given any check being false and session verification state being loaded, FtueState is Incomplete`() = runTest {
         val sessionVerificationService = FakeSessionVerificationService().apply {
             emitVerifiedStatus(SessionVerifiedStatus.Unknown)

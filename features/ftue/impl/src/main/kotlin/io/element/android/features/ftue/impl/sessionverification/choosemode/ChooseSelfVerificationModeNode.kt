@@ -30,6 +30,7 @@ class ChooseSelfVerificationModeNode(
     private val directLogoutView: DirectLogoutView,
 ) : Node(buildContext, plugins = plugins) {
     interface Callback : Plugin {
+        fun onVerificationDeferred()
         fun navigateToUseAnotherDevice()
         fun navigateToUseRecoveryKey()
         fun navigateToResetKey()
@@ -49,6 +50,7 @@ class ChooseSelfVerificationModeNode(
             onResetKey = callback::navigateToResetKey,
             onLearnMore = callback::navigateToLearnMoreAboutEncryption,
             modifier = modifier,
+            onDeferSuccess = callback::onVerificationDeferred,
         )
 
         directLogoutView.Render(state = state.directLogoutState)

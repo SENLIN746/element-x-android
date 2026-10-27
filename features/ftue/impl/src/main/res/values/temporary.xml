@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="screen_identity_confirmation_defer">Continue without verifying</string>
+    <string name="screen_identity_confirmation_defer_help">This device stays unverified. Some encrypted history may be unavailable. You can verify later in Encryption settings.</string>
+    <string name="error_identity_confirmation_defer">Could not save this device preference. Try again.</string>
+</resources>

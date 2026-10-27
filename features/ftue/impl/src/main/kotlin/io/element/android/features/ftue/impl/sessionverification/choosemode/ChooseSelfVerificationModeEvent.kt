@@ -9,5 +9,6 @@
 package io.element.android.features.ftue.impl.sessionverification.choosemode
 
 sealed interface ChooseSelfVerificationModeEvent {
+    data object DeferVerification : ChooseSelfVerificationModeEvent
     data object SignOut : ChooseSelfVerificationModeEvent
 }

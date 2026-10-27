@@ -88,7 +88,7 @@ class DefaultFtueService(
             } else {
                 getNextStep(FtueStep.WaitingForInitialState)
             }
-            FtueStep.WaitingForInitialState -> if (isSessionNotVerified() || userNeedsToConfirmSessionVerificationSuccess.value) {
+            FtueStep.WaitingForInitialState -> if (requiresSessionVerification()) {
                 FtueStep.SessionVerification
             } else {
                 getNextStep(FtueStep.SessionVerification)
@@ -115,8 +115,9 @@ class DefaultFtueService(
         return sessionVerificationService.sessionVerifiedStatus.value != SessionVerifiedStatus.Unknown
     }
 
-    private suspend fun isSessionNotVerified(): Boolean {
-        return sessionVerificationService.sessionVerifiedStatus.value == SessionVerifiedStatus.NotVerified && !canSkipVerification()
+    private suspend fun requiresSessionVerification(): Boolean {
+        if (canSkipVerification()) return false
+        return sessionVerificationService.sessionVerifiedStatus.value == SessionVerifiedStatus.NotVerified || userNeedsToConfirmSessionVerificationSuccess.value
     }
 
     private suspend fun canSkipVerification(): Boolean {

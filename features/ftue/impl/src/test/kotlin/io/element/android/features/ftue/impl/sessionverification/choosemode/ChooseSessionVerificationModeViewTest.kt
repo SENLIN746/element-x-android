@@ -84,6 +84,14 @@ class ChooseSessionVerificationModeViewTest : RobolectricTest() {
         eventsRecorder.assertSingle(ChooseSelfVerificationModeEvent.SignOut)
     }
 
+    @Test
+    fun `continuing unverified requires the explicit view action`() = runAndroidComposeUiTest {
+        val events = EventsRecorder<ChooseSelfVerificationModeEvent>()
+        setChooseSelfVerificationModeView(aChooseSelfVerificationModeState(eventSink = events))
+        clickOn(R.string.screen_identity_confirmation_defer)
+        events.assertSingle(ChooseSelfVerificationModeEvent.DeferVerification)
+    }
+
     private fun AndroidComposeUiTest<ComponentActivity>.setChooseSelfVerificationModeView(
         state: ChooseSelfVerificationModeState,
         onLearnMoreClick: () -> Unit = EnsureNeverCalled(),

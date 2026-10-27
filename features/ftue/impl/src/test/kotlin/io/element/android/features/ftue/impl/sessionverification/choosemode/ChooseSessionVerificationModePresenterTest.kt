@@ -22,11 +22,17 @@ import io.element.android.libraries.matrix.test.A_SESSION_ID
 import io.element.android.libraries.matrix.test.A_USER_NAME
 import io.element.android.libraries.matrix.test.FakeMatrixClient
 import io.element.android.libraries.matrix.test.encryption.FakeEncryptionService
+import io.element.android.libraries.preferences.api.store.SessionPreferencesStore
+import io.element.android.libraries.preferences.test.InMemorySessionPreferencesStore
 import io.element.android.tests.testutils.lambda.lambdaRecorder
 import io.element.android.tests.testutils.lambda.value
 import io.element.android.tests.testutils.test
+import io.mockk.coEvery
+import io.mockk.mockk
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
+import java.io.IOException
 
 class ChooseSessionVerificationModePresenterTest {
     @Test
@@ -151,11 +157,39 @@ class ChooseSessionVerificationModePresenterTest {
         }
     }
 
+    @Test
+    fun `explicit deferral saves only the local preference`() = runTest {
+        val preferences = InMemorySessionPreferencesStore()
+        createPresenter(sessionPreferencesStore = preferences).test {
+            val initial = awaitItem()
+            assertThat(preferences.isSessionVerificationSkipped().first()).isFalse()
+            initial.eventSink(ChooseSelfVerificationModeEvent.DeferVerification)
+            var result = awaitItem()
+            while (result.deferAction.isLoading()) result = awaitItem()
+            assertThat(result.deferAction.isSuccess()).isTrue()
+            assertThat(preferences.isSessionVerificationSkipped().first()).isTrue()
+        }
+    }
+
+    @Test
+    fun `failed preference write does not complete deferral`() = runTest {
+        val preferences = mockk<SessionPreferencesStore>()
+        coEvery { preferences.setSkipSessionVerification(true) } throws IOException("synthetic unavailable store")
+        createPresenter(sessionPreferencesStore = preferences).test {
+            awaitItem().eventSink(ChooseSelfVerificationModeEvent.DeferVerification)
+            var result = awaitItem()
+            while (result.deferAction.isLoading()) result = awaitItem()
+            assertThat(result.deferAction.isFailure()).isTrue()
+        }
+    }
+
     private fun createPresenter(
+        sessionPreferencesStore: SessionPreferencesStore = InMemorySessionPreferencesStore(),
         matrixClient: MatrixClient = FakeMatrixClient(),
         encryptionService: FakeEncryptionService = FakeEncryptionService(),
         directLogoutPresenter: Presenter<DirectLogoutState> = Presenter<DirectLogoutState> { aDirectLogoutState() }
     ) = ChooseSelfVerificationModePresenter(
+        sessionPreferencesStore = sessionPreferencesStore,
         matrixClient = matrixClient,
         encryptionService = encryptionService,
         directLogoutPresenter = directLogoutPresenter,

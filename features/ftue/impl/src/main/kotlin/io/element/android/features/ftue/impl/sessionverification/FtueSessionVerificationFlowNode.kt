@@ -85,6 +85,10 @@ class FtueSessionVerificationFlowNode(
         return when (navTarget) {
             is NavTarget.Root -> {
                 val callback = object : ChooseSelfVerificationModeNode.Callback {
+                    override fun onVerificationDeferred() {
+                        this@FtueSessionVerificationFlowNode.callback.onDone()
+                    }
+
                     override fun navigateToUseAnotherDevice() {
                         backstack.push(NavTarget.UseAnotherDevice)
                     }
