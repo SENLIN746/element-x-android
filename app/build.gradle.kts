@@ -107,13 +107,13 @@ android {
     buildTypes {
         val oAuthRedirectSchemeBase = BuildTimeConfig.METADATA_HOST_REVERSED ?: "io.element.android"
         getByName("debug") {
-            resValue("string", "app_name", "$baseAppName dbg")
+            resValue("string", "app_name", "$baseAppName QA")
             resValue(
                 "string",
                 "login_redirect_scheme",
                 "$oAuthRedirectSchemeBase.debug",
             )
-            applicationIdSuffix = ".debug"
+            applicationIdSuffix = ""
             signingConfig = signingConfigs.getByName("debug")
         }
 
@@ -268,6 +268,7 @@ setupDependencyInjection()
 
 dependencies {
     allLibrariesImpl()
+    implementation(projects.libraries.agentim.impl)
     allServicesImpl()
     if (isEnterpriseBuild) {
         allEnterpriseImpl(project)

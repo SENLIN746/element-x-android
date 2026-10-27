@@ -9,9 +9,9 @@
 pluginManagement {
     repositories {
         includeBuild("plugins")
+        mavenCentral()
         gradlePluginPortal()
         google()
-        mavenCentral()
     }
 }
 dependencyResolutionManagement {

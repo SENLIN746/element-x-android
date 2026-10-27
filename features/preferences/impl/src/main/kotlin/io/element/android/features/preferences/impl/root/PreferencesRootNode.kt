@@ -11,6 +11,10 @@ package io.element.android.features.preferences.impl.root
 import android.app.Activity
 import androidx.activity.compose.LocalActivity
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import com.bumble.appyx.core.modality.BuildContext
 import com.bumble.appyx.core.node.Node
@@ -19,6 +23,7 @@ import dev.zacsweers.metro.Assisted
 import dev.zacsweers.metro.AssistedInject
 import io.element.android.annotations.ContributesNode
 import io.element.android.compound.theme.ElementTheme
+import io.element.android.features.agentim.api.AgentimEntryPoint
 import io.element.android.features.preferences.impl.account.PreferencesAccountCallback
 import io.element.android.libraries.androidutils.browser.openUrlInChromeCustomTab
 import io.element.android.libraries.architecture.callback
@@ -33,6 +38,7 @@ class PreferencesRootNode(
     @Assisted plugins: List<Plugin>,
     private val presenter: PreferencesRootPresenter,
     private val emojiPickerRenderer: EmojiPickerRenderer,
+    private val agentimEntryPoint: AgentimEntryPoint,
 ) : Node(buildContext, plugins = plugins) {
     interface Callback : PreferencesAccountCallback, Plugin {
         fun navigateToAddAccount()
@@ -68,10 +74,16 @@ class PreferencesRootNode(
         val activity = requireNotNull(LocalActivity.current)
         val isDark = ElementTheme.isLightTheme.not()
 
+        var showAgentim by remember { mutableStateOf(false) }
+        if (showAgentim) {
+            agentimEntryPoint.Render(onClose = { showAgentim = false }, modifier = modifier)
+            return
+        }
         PreferencesRootView(
             state = state,
             emojiPickerRenderer = emojiPickerRenderer,
             modifier = modifier,
+            onAgentimClick = { showAgentim = true },
             onBackClick = this::navigateUp,
             onAddAccountClick = callback::navigateToAddAccount,
             onSwitchToSession = callback::navigateToSession,

@@ -32,7 +32,6 @@ import io.element.android.libraries.matrix.api.auth.qrlogin.QrCodeLoginStep
 import io.element.android.libraries.matrix.api.core.SessionId
 import io.element.android.libraries.matrix.api.core.UserId
 import io.element.android.libraries.matrix.api.paths.SessionPaths
-import io.element.android.libraries.matrix.api.verification.SessionVerifiedStatus
 import io.element.android.libraries.matrix.impl.ClientBuilderSlidingSync
 import io.element.android.libraries.matrix.impl.NoOpClientSessionDelegate
 import io.element.android.libraries.matrix.impl.RustMatrixClientFactory
@@ -48,9 +47,7 @@ import io.element.android.libraries.sessionstorage.api.LoginType
 import io.element.android.libraries.sessionstorage.api.SessionData
 import io.element.android.libraries.sessionstorage.api.SessionStore
 import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
-import kotlinx.coroutines.withTimeoutOrNull
 import org.matrix.rustcomponents.sdk.Client
 import org.matrix.rustcomponents.sdk.ClientBuilder
 import org.matrix.rustcomponents.sdk.HumanQrLoginException
@@ -58,10 +55,8 @@ import org.matrix.rustcomponents.sdk.QrCodeData
 import org.matrix.rustcomponents.sdk.QrCodeDecodeException
 import org.matrix.rustcomponents.sdk.QrLoginProgress
 import org.matrix.rustcomponents.sdk.QrLoginProgressListener
-import org.matrix.rustcomponents.sdk.SecretsBundleWithUserId
 import timber.log.Timber
 import uniffi.matrix_sdk.OAuthAuthorizationData
-import kotlin.time.Duration.Companion.seconds
 
 @ContributesBinding(AppScope::class)
 @SingleIn(AppScope::class)
@@ -75,6 +70,7 @@ class RustMatrixAuthenticationService(
     private val enterpriseService: EnterpriseService,
     private val featureFlagService: FeatureFlagService,
     private val clientEnterpriseHook: ClientEnterpriseHook,
+    private val tokenLogin: MatrixTokenLogin = MatrixTokenLogin(),
 ) : MatrixAuthenticationService {
     // Any existing Element Classic session that we want to try to import secrets from during login.
     private var elementClassicSession: ElementClassicSession? = null
@@ -132,6 +128,8 @@ class RustMatrixAuthenticationService(
 
     override suspend fun setHomeserver(homeserver: String): Result<MatrixHomeServerDetails> =
         withContext(coroutineDispatchers.io) {
+            // A retry must release the temporary SQLite stores before rotating their paths.
+            clear()
             val emptySessionPath = rotateSessionPath()
             runCatchingExceptions {
                 val client = makeClient(sessionPaths = emptySessionPath) {
@@ -162,7 +160,7 @@ class RustMatrixAuthenticationService(
                 )
                 // Ensure that the user is not already logged in with the same account
                 ensureNotAlreadyLoggedIn(client)
-                tryToImportSecretForElementClassicSession(client)
+                ClassicSessionSecrets.importInto(elementClassicSession, client)
                 val sessionData = client.session()
                     .toSessionData(
                         isTokenValid = true,
@@ -177,51 +175,25 @@ class RustMatrixAuthenticationService(
             }
         }
 
-    private suspend fun tryToImportSecretForElementClassicSession(client: Client) {
-        elementClassicSession
-            ?.takeIf {
-                // Note: the SDK will also do this check
-                it.userId.value == client.userId()
-            }
-            ?.let {
-                val secrets = it.secrets
-                val roomKeysVersion = it.roomKeysVersion
-                if (secrets == null || roomKeysVersion == null) {
-                    Timber.d("No secrets or roomKeysVersion found for Element Classic session ${it.userId}, skipping import")
-                } else {
-                    Timber.d("Trying to import secrets for Element Classic session ${it.userId}")
-                    runCatchingExceptions {
-                        SecretsBundleWithUserId.fromStr(
-                            userId = it.userId.value,
-                            bundle = secrets,
-                            backupInfo = roomKeysVersion,
-                        ).use { secretsBundle ->
-                            client.encryption().importSecretsBundle(secretsBundle)
-                        }
-                    }.onFailure { failure ->
-                        Timber.e(failure, "Failed to import secrets for Element Classic session ${it.userId}")
-                    }
-                }
-            }
-    }
+    override fun doSecretsContainBackupKey(userId: UserId, secrets: String, backupInfo: String): Boolean =
+        ClassicSessionSecrets.containsBackupKey(userId, secrets, backupInfo)
 
-    override fun doSecretsContainBackupKey(
-        userId: UserId,
-        secrets: String,
-        backupInfo: String,
-    ): Boolean {
-        return try {
-            SecretsBundleWithUserId.fromStr(
-                userId = userId.value,
-                bundle = secrets,
-                backupInfo = backupInfo,
-            ).use { secretsBundle ->
-                secretsBundle.containsBackupKey()
-            }
-        } catch (failure: Exception) {
-            Timber.e(failure, "Failed to parse secrets for Element Classic session $userId")
-            false
-        }
+    override suspend fun loginWithToken(token: String): Result<SessionId> = withContext(coroutineDispatchers.io) {
+        runCatchingExceptions {
+            require(token.isNotBlank()) { "A short-lived login token is required" }
+            val client = currentClient ?: error("You need to call `setHomeserver()` first")
+            val paths = sessionPaths ?: error("You need to call `setHomeserver()` first")
+            tokenLogin.login(client, token)
+            ensureNotAlreadyLoggedIn(client)
+            finalizeClientCreation(
+                client.session().toSessionData(
+                    isTokenValid = true,
+                    loginType = LoginType.SSO,
+                    passphrase = pendingKey.formattedAsString(),
+                    sessionPaths = paths,
+                )
+            )
+        }.mapFailure { it.mapAuthenticationException() }
     }
 
     private var pendingOAuthAuthorizationData: OAuthAuthorizationData? = null
@@ -292,7 +264,7 @@ class RustMatrixAuthenticationService(
                 pendingOAuthAuthorizationData = null
                 // Ensure that the user is not already logged in with the same account
                 ensureNotAlreadyLoggedIn(client)
-                tryToImportSecretForElementClassicSession(client)
+                ClassicSessionSecrets.importInto(elementClassicSession, client)
                 val sessionData = client.session().toSessionData(
                     isTokenValid = true,
                     loginType = LoginType.OIDC,
@@ -462,12 +434,4 @@ class RustMatrixAuthenticationService(
 
     private suspend fun isMessageSearchAvailable(): Boolean =
         featureFlagService.isFeatureEnabled(FeatureFlags.MessageSearch)
-
-    private suspend fun MatrixClient.waitForKnownVerificationState() {
-        withTimeoutOrNull(10.seconds) {
-            Timber.d("Waiting for a known verification status...")
-            val status = sessionVerificationService.sessionVerifiedStatus.first { it != SessionVerifiedStatus.Unknown }
-            Timber.d("Finished waiting for a known verification status: $status")
-        } ?: Timber.w("Timed out waiting for a known verification status")
-    }
 }

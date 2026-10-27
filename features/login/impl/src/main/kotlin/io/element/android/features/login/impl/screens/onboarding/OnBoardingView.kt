@@ -73,6 +73,7 @@ fun OnBoardingView(
     onLearnMoreClick: () -> Unit,
     onReportProblem: () -> Unit,
     modifier: Modifier = Modifier,
+    onAgentimClick: () -> Unit = {},
 ) {
     val loginView = @Composable {
         LoginModeView(
@@ -95,6 +96,12 @@ fun OnBoardingView(
         )
     }
     val buttons = @Composable {
+        TextButton(
+            text = stringResource(R.string.screen_onboarding_agentim),
+            onClick = onAgentimClick,
+            enabled = state.loginModeState.loginMode !is AsyncData.Loading,
+            modifier = Modifier.fillMaxWidth(),
+        )
         OnBoardingButtons(
             state = state,
             onSignInWithQrCode = onSignInWithQrCode,

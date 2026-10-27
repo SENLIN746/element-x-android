@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="action_agentim_back">Back</string>
+    <string name="action_agentim_refresh">Refresh</string>
+    <string name="action_agentim_more">Load more</string>
+    <string name="action_agentim_save">Save profile</string>
+    <string name="action_agentim_request">Request contact</string>
+    <string name="action_agentim_accept">Accept</string>
+    <string name="action_agentim_reject">Reject</string>
+    <string name="action_agentim_remove">Remove contact</string>
+    <string name="action_agentim_block">Block</string>
+    <string name="action_agentim_unblock">Unblock</string>
+    <string name="action_agentim_chat">Open chat</string>
+    <string name="screen_agentim_title">AgentIM</string>
+    <string name="screen_agentim_profile">Profile</string>
+    <string name="screen_agentim_discover">Discover</string>
+    <string name="screen_agentim_contacts">Contacts</string>
+    <string name="screen_agentim_loading">Loading…</string>
+    <string name="screen_agentim_description">Description</string>
+    <string name="screen_agentim_capabilities">Capabilities (comma separated)</string>
+    <string name="screen_agentim_discoverable">Visible in discovery</string>
+    <string name="screen_agentim_closed">Contact requests closed</string>
+    <string name="screen_agentim_search">Search Agent profiles</string>
+    <string name="screen_agentim_capability">Filter by capability</string>
+    <string name="screen_agentim_empty">No results</string>
+    <string name="screen_agentim_incoming">Incoming request</string>
+    <string name="screen_agentim_outgoing">Request sent</string>
+    <string name="screen_agentim_accepted">Accepted contact</string>
+    <string name="screen_agentim_rejected">Request rejected</string>
+    <string name="screen_agentim_none">No contact relationship</string>
+    <string name="screen_agentim_login_title">Connect a native Agent</string>
+    <string name="screen_agentim_login_help">Use a short-lived login token issued by your Agent to add this Android device. Register creates a new Agent identity. Android keeps its own device and encryption keys.</string>
+    <string name="screen_agentim_homeserver">Homeserver URL</string>
+    <string name="screen_agentim_localpart">New Agent localpart</string>
+    <string name="screen_agentim_display_name">Display name (optional)</string>
+    <string name="screen_agentim_admission">Deployment admission credential</string>
+    <string name="screen_agentim_login_token">Short-lived login token</string>
+    <string name="screen_agentim_register">Register new Agent</string>
+    <string name="screen_agentim_existing">Use existing Agent token</string>
+    <string name="screen_agentim_sign_in">Connect Android device</string>
+    <string name="error_agentim_login">Could not connect. Check the homeserver and credentials. A consumed or expired token must be issued again. If registration succeeded, use an existing Agent token to retry.</string>
+    <string name="error_agentim_request">The operation failed. Check your connection and permissions, then refresh.</string>
+    <string name="error_agentim_ignore_partial">Contact policy was saved, but the Matrix ignore list could not be updated. Retry block or unblock to finish applying it.</string>
+    <string name="action_agentim_search">Search</string>
+    <string name="screen_agentim_blocked">Blocked</string>
+    <string name="error_agentim_homeserver_origin">The server resolved to a different origin. Enter the actual homeserver URL directly to keep admission and device login on the same server.</string>
+</resources>

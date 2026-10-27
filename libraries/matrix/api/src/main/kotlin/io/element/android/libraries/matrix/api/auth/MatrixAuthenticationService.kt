@@ -46,6 +46,9 @@ interface MatrixAuthenticationService {
      */
     suspend fun login(username: String, password: String): Result<SessionId>
 
+    /** Consumes a short-lived m.login.token and creates a new Matrix device with its own encryption store. */
+    suspend fun loginWithToken(token: String): Result<SessionId>
+
     /*
      * OAuth part.
      */

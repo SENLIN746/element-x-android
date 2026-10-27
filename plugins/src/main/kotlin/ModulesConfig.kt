@@ -16,7 +16,7 @@ object ModulesConfig {
         includeUnifiedPush = BuildTimeConfig.PUSH_CONFIG_INCLUDE_UNIFIED_PUSH,
     )
 
-    val analyticsConfig: AnalyticsConfig = if (isEnterpriseBuild) {
+    val analyticsConfig: AnalyticsConfig = run {
         // Is Posthog configuration available?
         val withPosthog = BuildTimeConfig.SERVICES_POSTHOG_APIKEY.isNullOrEmpty().not() &&
             BuildTimeConfig.SERVICES_POSTHOG_HOST.isNullOrEmpty().not()
@@ -32,11 +32,5 @@ object ModulesConfig {
             println("Analytics disabled")
             AnalyticsConfig.Disabled
         }
-    } else {
-        println("Analytics enabled with Posthog and Sentry")
-        AnalyticsConfig.Enabled(
-            withPosthog = true,
-            withSentry = true,
-        )
     }
 }

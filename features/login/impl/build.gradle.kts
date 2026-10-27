@@ -54,6 +54,7 @@ setupDependencyInjection()
 
 dependencies {
     implementation(projects.appconfig)
+    implementation(projects.features.agentim.api)
     implementation(projects.features.enterprise.api)
     implementation(projects.features.preferences.api)
     implementation(projects.features.rageshake.api)

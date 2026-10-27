@@ -32,7 +32,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.unit.dp
 import io.element.android.compound.theme.ElementTheme
 import io.element.android.compound.tokens.generated.CompoundIcons
@@ -42,7 +41,6 @@ import io.element.android.features.preferences.impl.user.UserPreferences
 import io.element.android.features.preferences.impl.userstatus.UserStatusState
 import io.element.android.features.preferences.impl.userstatus.UserStatusView
 import io.element.android.libraries.architecture.AsyncAction
-import io.element.android.libraries.architecture.coverage.ExcludeFromCoverage
 import io.element.android.libraries.designsystem.atomic.atoms.CounterAtom
 import io.element.android.libraries.designsystem.components.async.AsyncActionIndicator
 import io.element.android.libraries.designsystem.components.async.AsyncIndicator
@@ -53,19 +51,14 @@ import io.element.android.libraries.designsystem.components.list.ListItemContent
 import io.element.android.libraries.designsystem.components.preferences.PreferenceCategory
 import io.element.android.libraries.designsystem.components.preferences.PreferenceDropdown
 import io.element.android.libraries.designsystem.components.preferences.PreferencePage
-import io.element.android.libraries.designsystem.preview.ElementPreviewDark
-import io.element.android.libraries.designsystem.preview.ElementPreviewLight
-import io.element.android.libraries.designsystem.preview.PreviewWithLargeHeight
 import io.element.android.libraries.designsystem.theme.components.HorizontalDivider
 import io.element.android.libraries.designsystem.theme.components.Icon
 import io.element.android.libraries.designsystem.theme.components.IconSource
 import io.element.android.libraries.designsystem.theme.components.ListItem
 import io.element.android.libraries.designsystem.theme.components.Text
-import io.element.android.libraries.designsystem.utils.CommonDrawables
 import io.element.android.libraries.designsystem.utils.snackbar.SnackbarHost
 import io.element.android.libraries.designsystem.utils.snackbar.rememberSnackbarHostState
 import io.element.android.libraries.emoji.api.picker.EmojiPickerRenderer
-import io.element.android.libraries.emoji.api.picker.NoOpEmojiPickerRenderer
 import io.element.android.libraries.matrix.api.core.SessionId
 import io.element.android.libraries.matrix.api.user.MatrixUser
 import io.element.android.libraries.matrix.ui.components.MatrixUserRow
@@ -99,6 +92,7 @@ fun PreferencesRootView(
     onSignOutClick: () -> Unit,
     onDeactivateClick: () -> Unit,
     modifier: Modifier = Modifier,
+    onAgentimClick: () -> Unit = {},
 ) {
     val snackbarHostState = rememberSnackbarHostState(snackbarMessage = state.snackbarMessage)
 
@@ -116,6 +110,11 @@ fun PreferencesRootView(
                         onEditProfileClick(state.myUser)
                     },
                 matrixUser = state.myUser,
+            )
+            ListItem(
+                content = { Text(stringResource(R.string.screen_preferences_agentim)) },
+                leadingContent = ListItemContent.Icon(IconSource.Vector(CompoundIcons.Info())),
+                onClick = onAgentimClick,
             )
             if (state.userStatusState != null) {
                 UserStatusSection(
@@ -412,47 +411,5 @@ private fun DeveloperPreferencesView(onOpenDeveloperSettings: () -> Unit) {
         content = { Text(stringResource(id = CommonStrings.common_developer_options)) },
         leadingContent = ListItemContent.Icon(IconSource.Vector(CompoundIcons.Code())),
         onClick = onOpenDeveloperSettings
-    )
-}
-
-@PreviewWithLargeHeight
-@Composable
-internal fun PreferencesRootViewLightPreview(@PreviewParameter(PreferencesRootStatePreviewParam::class) state: PreferencesRootState) =
-    ElementPreviewLight(
-        drawableFallbackForImages = CommonDrawables.sample_avatar,
-    ) { ContentToPreview(state) }
-
-@PreviewWithLargeHeight
-@Composable
-internal fun PreferencesRootViewDarkPreview(@PreviewParameter(PreferencesRootStatePreviewParam::class) state: PreferencesRootState) =
-    ElementPreviewDark(
-        drawableFallbackForImages = CommonDrawables.sample_avatar,
-    ) { ContentToPreview(state) }
-
-@ExcludeFromCoverage
-@Composable
-private fun ContentToPreview(state: PreferencesRootState) {
-    PreferencesRootView(
-        state = state,
-        emojiPickerRenderer = NoOpEmojiPickerRenderer,
-        onBackClick = {},
-        onAddAccountClick = {},
-        onSwitchToSession = {},
-        onOpenAnalytics = {},
-        onOpenDeveloperSettings = {},
-        onOpenLocationSettings = {},
-        onOpenMediaSettings = {},
-        onOpenLabs = {},
-        onOpenAbout = {},
-        onOpenLockScreenSettings = {},
-        onEditProfileClick = {},
-        onSecureBackupClick = {},
-        onManageAccountClick = {},
-        onLinkNewDeviceClick = {},
-        onOpenRageShake = {},
-        onModerationAndSafetyClick = {},
-        onOpenNotificationSettings = {},
-        onSignOutClick = {},
-        onDeactivateClick = {},
     )
 }

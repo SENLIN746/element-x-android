@@ -16,6 +16,9 @@ plugins {
 
 android {
     namespace = "io.element.android.libraries.matrix.impl"
+    buildFeatures {
+        buildConfig = true
+    }
 }
 
 setupDependencyInjection()
@@ -42,6 +45,8 @@ if (usesLocalRustSdk) {
 }
 
 dependencies {
+    implementation(platform(libs.network.okhttp.bom))
+    implementation(libs.network.okhttp)
     releaseImplementation(libs.matrix.sdk)
     if (usesLocalRustSdk) {
         println(

@@ -6,6 +6,14 @@
  * Please see LICENSE files in the repository root for full details.
  */
 
+pluginManagement {
+    repositories {
+        mavenCentral()
+        gradlePluginPortal()
+        google()
+    }
+}
+
 rootProject.name = "ElementX_plugins"
 
 dependencyResolutionManagement {

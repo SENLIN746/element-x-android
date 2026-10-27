@@ -64,6 +64,8 @@ class FakeMatrixAuthenticationService(
         }
     }
 
+    override suspend fun loginWithToken(token: String): Result<SessionId> = login("", "")
+
     /** The login hint passed to the most recent [getOAuthUrl] call. */
     var getOAuthUrlLoginHint: String? = null
         private set

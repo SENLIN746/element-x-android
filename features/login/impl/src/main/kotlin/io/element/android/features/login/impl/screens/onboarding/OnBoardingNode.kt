@@ -8,7 +8,12 @@
 
 package io.element.android.features.login.impl.screens.onboarding
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import com.bumble.appyx.core.modality.BuildContext
@@ -18,6 +23,7 @@ import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.Assisted
 import dev.zacsweers.metro.AssistedInject
 import io.element.android.annotations.ContributesNode
+import io.element.android.features.agentim.api.AgentimLoginEntryPoint
 import io.element.android.features.login.impl.util.openLearnMorePage
 import io.element.android.libraries.architecture.NodeInputs
 import io.element.android.libraries.architecture.callback
@@ -30,6 +36,7 @@ class OnBoardingNode(
     @Assisted buildContext: BuildContext,
     @Assisted plugins: List<Plugin>,
     presenterFactory: OnBoardingPresenter.Factory,
+    private val agentimLoginEntryPoint: AgentimLoginEntryPoint,
 ) : Node(
     buildContext = buildContext,
     plugins = plugins
@@ -60,6 +67,12 @@ class OnBoardingNode(
 
     @Composable
     override fun View(modifier: Modifier) {
+        var showAgentim by remember { mutableStateOf(false) }
+        if (showAgentim) {
+            BackHandler { showAgentim = false }
+            agentimLoginEntryPoint.Render(onBack = { showAgentim = false }, modifier = modifier)
+            return
+        }
         val state = presenter.present()
         val context = LocalContext.current
 
@@ -74,6 +87,7 @@ class OnBoardingNode(
             onNeedLoginPassword = callback::navigateToLoginPassword,
             onLearnMoreClick = { openLearnMorePage(context) },
             onBackClick = callback::onDone,
+            onAgentimClick = { showAgentim = true },
             onDeveloperSettingsClick = callback::navigateToDeveloperSettings,
         )
     }
