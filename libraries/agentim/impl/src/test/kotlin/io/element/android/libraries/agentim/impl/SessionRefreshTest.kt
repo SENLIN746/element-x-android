@@ -6,6 +6,7 @@
 package io.element.android.libraries.agentim.impl
 
 import com.google.common.truth.Truth.assertThat
+import io.element.android.libraries.core.extensions.runCatchingExceptions
 import io.element.android.libraries.matrix.api.MatrixClient
 import io.element.android.libraries.matrix.api.core.SessionId
 import io.element.android.libraries.sessionstorage.api.SessionStore
@@ -90,7 +91,7 @@ class SessionRefreshTest {
     fun `unchanged credentials time out without replay`() = runTest {
         val service = service()
         coEvery { http.request(url, old.accessToken, "GET", null, false) } throws AgentimAuthenticationExpired()
-        val result = runCatching { service.request(listOf("profiles", "me")) }
+        val result = runCatchingExceptions { service.request(listOf("profiles", "me")) }
         assertThat(result.exceptionOrNull()).isInstanceOf(AgentimAuthenticationExpired::class.java)
         coVerify(exactly = 1) { http.request(any(), any(), any(), any(), any()) }
     }
@@ -112,7 +113,7 @@ class SessionRefreshTest {
                 current.value = replacement
                 throw AgentimAuthenticationExpired()
             }
-            val result = runCatching { service.request(listOf("contacts"), "PUT", JSONObject().put("action", "accept")) }
+            val result = runCatchingExceptions { service.request(listOf("contacts"), "PUT", JSONObject().put("action", "accept")) }
             assertThat(result.exceptionOrNull()).isInstanceOf(AgentimAuthenticationExpired::class.java)
             coVerify(exactly = 1) { http.request(any(), any(), any(), any(), any()) }
         }
@@ -122,7 +123,7 @@ class SessionRefreshTest {
     fun `transport and non401 failures never replay a write`() = runTest {
         val service = service()
         coEvery { http.request(url, old.accessToken, "PUT", any(), false) } throws IOException("synthetic offline")
-        val result = runCatching { service.request(listOf("contacts"), "PUT", JSONObject()) }
+        val result = runCatchingExceptions { service.request(listOf("contacts"), "PUT", JSONObject()) }
         assertThat(result.exceptionOrNull()).isInstanceOf(IOException::class.java)
         coVerify(exactly = 1) { http.request(any(), any(), any(), any(), any()) }
     }
@@ -135,7 +136,7 @@ class SessionRefreshTest {
             throw AgentimAuthenticationExpired()
         }
         coEvery { http.request(url, fresh.accessToken, "GET", null, false) } throws AgentimAuthenticationExpired()
-        val result = runCatching { service.request(listOf("profiles", "me")) }
+        val result = runCatchingExceptions { service.request(listOf("profiles", "me")) }
         assertThat(result.exceptionOrNull()).isInstanceOf(AgentimAuthenticationExpired::class.java)
         coVerify(exactly = 2) { http.request(any(), any(), any(), any(), any()) }
     }

@@ -23,7 +23,8 @@ internal fun AgentProfile.toUpdate(): JSONObject {
     require(capabilities.size <= 32 && capabilities.distinct().size == capabilities.size && capabilities.all { it.length in 1..64 })
     require(contactPolicy in setOf("request", "closed"))
     return JSONObject().put("description", description).put("capabilities", JSONArray(capabilities))
-        .put("discoverable", discoverable).put("contact_policy", contactPolicy)
+        .put("discoverable", discoverable)
+        .put("contact_policy", contactPolicy)
 }
 
 internal fun JSONObject.contact() = AgentContact(getString("user_id"), getString("state"), getBoolean("blocked"))

@@ -65,7 +65,7 @@ class ContactProjectionTest {
         }
         coEvery { http.request(accountUrl, any(), "PUT", any(), false) } coAnswers {
             operations.add("PUT")
-            data = JSONObject((arg<JSONObject>(3)).toString())
+            data = JSONObject(arg<JSONObject>(3).toString())
             JSONObject()
         }
         val block = async { service.contactAction(target, "block") }

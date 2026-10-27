@@ -47,8 +47,10 @@ class AgentimHttp {
     }
 
     internal fun accountDataUrl(homeserver: String, userId: String): HttpUrl = base(homeserver).newBuilder()
-        .addPathSegments("_matrix/client/v3/user").addPathSegment(userId)
-        .addPathSegments("account_data/m.ignored_user_list").build()
+        .addPathSegments("_matrix/client/v3/user")
+        .addPathSegment(userId)
+        .addPathSegments("account_data/m.ignored_user_list")
+        .build()
 
     internal fun endpoint(homeserver: String, path: List<String>, query: Map<String, String?> = emptyMap()): HttpUrl =
         base(homeserver).newBuilder().addPathSegments("_synapse/client/agentim/v1").apply {
@@ -61,7 +63,8 @@ class AgentimHttp {
             require(bearer.isNotBlank()) { "Authentication is required" }
             val request = Request.Builder().url(url).header("Authorization", "Bearer $bearer")
                 .header("Cache-Control", "no-store")
-                .method(method, body?.toString()?.toRequestBody("application/json".toMediaType())).build()
+                .method(method, body?.toString()?.toRequestBody("application/json".toMediaType()))
+                .build()
             client.newCall(request).execute().use { response ->
                 if (allowMissing && response.code == 404) return@withContext JSONObject()
                 if (response.code == 401) throw AgentimAuthenticationExpired()

@@ -6,6 +6,7 @@
 package io.element.android.libraries.matrix.impl.auth
 
 import com.google.common.truth.Truth.assertThat
+import io.element.android.libraries.core.extensions.runCatchingExceptions
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -40,7 +41,8 @@ class MatrixTokenLoginTest {
                 .body(
                     """{"user_id":"@agent:example.org","device_id":"NEW_ANDROID","access_token":"synthetic-new-device"}"""
                     .toResponseBody("application/json".toMediaType())
-                ).build()
+                )
+                .build()
         }.build()
         val client = mockk<Client>()
         every { client.homeserver() } returns "https://example.org"
@@ -65,11 +67,12 @@ class MatrixTokenLoginTest {
     fun `expired token cannot initialize a local SDK session`() = runTest {
         val http = OkHttpClient.Builder().addInterceptor { chain ->
             Response.Builder().request(chain.request()).protocol(Protocol.HTTP_1_1).code(403).message("Forbidden")
-                .body("{}".toResponseBody("application/json".toMediaType())).build()
+                .body("{}".toResponseBody("application/json".toMediaType()))
+                .build()
         }.build()
         val client = mockk<Client>()
         every { client.homeserver() } returns "https://example.org"
-        val result = runCatching { MatrixTokenLogin(http).login(client, "expired-synthetic-token") }
+        val result = runCatchingExceptions { MatrixTokenLogin(http).login(client, "expired-synthetic-token") }
         assertThat(result.isFailure).isTrue()
         coVerify(exactly = 0) { client.restoreSession(any()) }
     }

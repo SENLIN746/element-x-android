@@ -80,7 +80,6 @@ class AgentimTokenAuthenticationTest {
         val tokenLogin = mockk<MatrixTokenLogin>()
         coEvery { tokenLogin.login(any(), "short-token") } coAnswers {
             events.add("consume token")
-            Unit
         }
         val service = createRustMatrixAuthenticationService(builder, tokenLogin)
         assertThat(service.setHomeserver("https://example.org").isSuccess).isTrue()

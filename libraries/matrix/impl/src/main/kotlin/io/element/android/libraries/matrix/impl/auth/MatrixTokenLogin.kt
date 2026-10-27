@@ -22,8 +22,9 @@ import java.util.concurrent.TimeUnit
 
 /** The pinned FFI has no token-login method; consume m.login.token before initializing the new SDK store. */
 class MatrixTokenLogin @Inject constructor() {
-    private var http = OkHttpClient.Builder().followRedirects(false).followSslRedirects(false)
-        .callTimeout(30, TimeUnit.SECONDS).build()
+    private var http = OkHttpClient.Builder().followRedirects(false).followSslRedirects(false).retryOnConnectionFailure(false)
+        .callTimeout(30, TimeUnit.SECONDS)
+        .build()
 
     internal constructor(http: OkHttpClient) : this() {
         this.http = http
@@ -40,10 +41,13 @@ class MatrixTokenLogin @Inject constructor() {
         val base = client.homeserver().toHttpUrl()
         require(base.isHttps || allowsDevelopmentHttp(base.host))
         val body = JSONObject().put("type", "m.login.token").put("token", token)
-            .put("initial_device_display_name", "AgentIM Android").put("refresh_token", true)
+            .put("initial_device_display_name", "AgentIM Android")
+            .put("refresh_token", true)
         // device_id is deliberately absent: the server allocates a new independent device.
         val request = Request.Builder().url(base.newBuilder().addPathSegments("_matrix/client/v3/login").build())
-            .header("Cache-Control", "no-store").post(body.toString().toRequestBody("application/json".toMediaType())).build()
+            .header("Cache-Control", "no-store")
+            .post(body.toString().toRequestBody("application/json".toMediaType()))
+            .build()
         val session = http.newCall(request).execute().use { response ->
             if (!response.isSuccessful) throw IOException("Matrix token login failed (HTTP ${response.code})")
             val source = response.body.source()
