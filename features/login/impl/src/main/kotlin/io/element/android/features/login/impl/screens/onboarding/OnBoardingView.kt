@@ -96,18 +96,13 @@ fun OnBoardingView(
         )
     }
     val buttons = @Composable {
-        TextButton(
-            text = stringResource(R.string.screen_onboarding_agentim),
-            onClick = onAgentimClick,
-            enabled = state.loginModeState.loginMode !is AsyncData.Loading,
-            modifier = Modifier.fillMaxWidth(),
-        )
         OnBoardingButtons(
             state = state,
             onSignInWithQrCode = onSignInWithQrCode,
             onSignIn = onSignIn,
             onCreateAccount = onCreateAccount,
             onReportProblem = onReportProblem,
+            onAgentimClick = onAgentimClick,
         )
     }
 
@@ -280,6 +275,7 @@ private fun OnBoardingButtons(
     onSignIn: (mustChooseAccountProvider: Boolean) -> Unit,
     onCreateAccount: () -> Unit,
     onReportProblem: () -> Unit,
+    onAgentimClick: () -> Unit,
 ) {
     val isLoading by remember(state.loginModeState.loginMode) {
         derivedStateOf {
@@ -288,6 +284,12 @@ private fun OnBoardingButtons(
     }
 
     ButtonColumnMolecule {
+        TextButton(
+            text = stringResource(R.string.screen_onboarding_agentim),
+            onClick = onAgentimClick,
+            enabled = state.loginModeState.loginMode !is AsyncData.Loading,
+            modifier = Modifier.fillMaxWidth(),
+        )
         val signInButtonStringRes = if (state.canLoginWithQrCode || state.canCreateAccount) {
             R.string.screen_onboarding_sign_in_manually
         } else {

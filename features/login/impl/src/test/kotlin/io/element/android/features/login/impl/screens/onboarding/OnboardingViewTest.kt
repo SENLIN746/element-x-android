@@ -35,7 +35,9 @@ import io.element.android.tests.testutils.ensureCalledOnce
 import io.element.android.tests.testutils.ensureCalledOnceWithParam
 import io.element.android.tests.testutils.pressBack
 import io.element.android.tests.testutils.robolectric.RobolectricTestParameter
+import org.junit.Assert.assertTrue
 import org.junit.Test
+import org.robolectric.annotation.Config
 
 class OnboardingViewTest : RobolectricTestParameter() {
     @Test
@@ -235,6 +237,30 @@ class OnboardingViewTest : RobolectricTestParameter() {
         eventSink.assertSingle(OnBoardingEvent.ClearError)
     }
 
+    @Config(qualifiers = "h1024dp")
+    @Test
+    fun `AgentIM entry is above native login and invokes its callback`(
+        @TestParameter isAddingAccount: Boolean = namedTestValues(
+            "first account" to false,
+            "additional account" to true,
+        )
+    ) = runAndroidComposeUiTest {
+        ensureCalledOnce { callback ->
+            setOnboardingView(
+                state = anOnBoardingState(isAddingAccount = isAddingAccount, canLoginWithQrCode = true),
+                onAgentimClick = callback,
+            )
+            val resources = activity!!.resources
+            val agentim = onNodeWithText(resources.getString(R.string.screen_onboarding_agentim))
+            val nativeLogin = onNodeWithText(resources.getString(R.string.screen_onboarding_sign_in_with_qr_code))
+            assertTrue(
+                "AgentIM entry must not overlap the standard login controls",
+                agentim.fetchSemanticsNode().boundsInRoot.bottom <= nativeLogin.fetchSemanticsNode().boundsInRoot.top,
+            )
+            agentim.performClick()
+        }
+    }
+
     private fun AndroidComposeUiTest<ComponentActivity>.setOnboardingView(
         state: OnBoardingState,
         onBackClick: () -> Unit = EnsureNeverCalled(),
@@ -246,6 +272,7 @@ class OnboardingViewTest : RobolectricTestParameter() {
         onOAuthDetails: (OAuthDetails) -> Unit = EnsureNeverCalledWithParam(),
         onNeedLoginPassword: () -> Unit = EnsureNeverCalled(),
         onLearnMoreClick: () -> Unit = EnsureNeverCalled(),
+        onAgentimClick: () -> Unit = EnsureNeverCalled(),
     ) {
         setContent {
             OnBoardingView(
@@ -259,6 +286,7 @@ class OnboardingViewTest : RobolectricTestParameter() {
                 onOAuthDetails = onOAuthDetails,
                 onNeedLoginPassword = onNeedLoginPassword,
                 onLearnMoreClick = onLearnMoreClick,
+                onAgentimClick = onAgentimClick,
             )
         }
     }
