@@ -13,7 +13,6 @@ import com.android.build.gradle.internal.tasks.factory.dependsOn
 import com.android.build.gradle.tasks.GenerateBuildConfig
 import com.google.firebase.appdistribution.gradle.firebaseAppDistribution
 import config.BuildTimeConfig
-import extension.prepareReleaseAssets
 import extension.AssetCopyTask
 import extension.GitBranchNameValueSource
 import extension.GitRevisionValueSource
@@ -24,6 +23,7 @@ import extension.allServicesImpl
 import extension.buildConfigFieldStr
 import extension.environmentOrGradleValue
 import extension.locales
+import extension.prepareReleaseAssets
 import extension.setupDependencyInjection
 import extension.testCommonDependencies
 import org.sonarqube.gradle.SonarResolverTask
