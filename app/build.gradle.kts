@@ -13,6 +13,7 @@ import com.android.build.gradle.internal.tasks.factory.dependsOn
 import com.android.build.gradle.tasks.GenerateBuildConfig
 import com.google.firebase.appdistribution.gradle.firebaseAppDistribution
 import config.BuildTimeConfig
+import extension.prepareReleaseAssets
 import extension.AssetCopyTask
 import extension.GitBranchNameValueSource
 import extension.GitRevisionValueSource
@@ -127,6 +128,7 @@ android {
             signingConfig = signingConfigs.getByName("debug")
 
             optimization {
+                // AGP 9.3 enables R8 code optimization and optimized resource shrinking together.
                 enable = true
                 keepRules {
                     // Equivalent of adding `getDefaultProguardFile("proguard-android-optimize.txt")` (this is the default value).
@@ -218,6 +220,7 @@ androidComponents {
     )
 
     onVariants { variant ->
+        variant.prepareReleaseAssets(project)
         // Register the R8 keep rules source folders for optimized build types (release, nightly).
         // Replaces the deprecated `optimization.keepRules.files` DSL (AGP 9+).
         if (variant.buildType != "debug") {

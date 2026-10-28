@@ -16,6 +16,7 @@ repositories {
 }
 
 dependencies {
+    testImplementation(kotlin("test"))
     implementation(libs.android.gradle.plugin)
     implementation(libs.kotlin.gradle.plugin)
     implementation(libs.kover.gradle.plugin)
