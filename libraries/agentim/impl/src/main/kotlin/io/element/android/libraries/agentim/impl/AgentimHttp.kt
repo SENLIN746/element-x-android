@@ -39,7 +39,7 @@ class AgentimHttp {
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) policy.isCleartextTrafficPermitted(host) else policy.isCleartextTrafficPermitted
     }
 
-    private fun base(homeserver: String): HttpUrl {
+    internal fun base(homeserver: String): HttpUrl {
         val base = homeserver.toHttpUrl()
         require(base.username.isEmpty() && base.password.isEmpty() && base.query == null && base.fragment == null)
         require(base.isHttps || allowsDevelopmentHttp(base.host)) { "Use an HTTPS homeserver" }

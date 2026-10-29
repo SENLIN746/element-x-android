@@ -6,23 +6,12 @@
 package io.element.android.features.agentim.impl.login
 
 import dev.zacsweers.metro.Inject
-import io.element.android.libraries.agentim.api.AgentimEnrollmentService
+import io.element.android.libraries.agentim.api.onboarding.AgentimOnboardingService
 import io.element.android.libraries.agentim.api.pairing.AgentimPairingGrant
 import io.element.android.libraries.core.extensions.runCatchingExceptions
 import io.element.android.libraries.matrix.api.auth.MatrixAuthenticationService
 import io.element.android.libraries.matrix.api.core.SessionId
 import java.net.URI
-
-internal data class AgentimLoginRequest(
-    val homeserver: String,
-    val token: String,
-    val admission: String,
-    val localpart: String,
-    val displayName: String,
-    val registering: Boolean,
-) {
-    override fun toString(): String = "AgentimLoginRequest(<redacted>)"
-}
 
 internal class AgentimHomeserverOriginChanged : IllegalArgumentException("Enter the actual homeserver URL directly")
 
@@ -30,17 +19,10 @@ internal class AgentimHomeserverOriginChanged : IllegalArgumentException("Enter 
 @Inject
 class AgentimDeviceLogin(
     private val authentication: MatrixAuthenticationService,
-    private val enrollment: AgentimEnrollmentService,
+    private val onboarding: AgentimOnboardingService,
 ) {
-    internal suspend fun login(request: AgentimLoginRequest): Result<SessionId> = runCatchingExceptions {
-        val serverUrl = prepare(request.homeserver).getOrThrow()
-        val token = if (request.registering) {
-            enrollment.register(serverUrl, request.admission, request.localpart, request.displayName).getOrThrow()
-        } else {
-            request.token
-        }
-        authentication.loginWithToken(token).getOrThrow()
-    }
+    internal suspend fun register(homeserver: String, localpart: String, displayName: String): Result<SessionId> =
+        onboarding.register(homeserver, localpart, displayName).map(::SessionId)
 
     internal suspend fun prepare(homeserver: String): Result<String> = runCatchingExceptions {
         val requestedOrigin = origin(homeserver)

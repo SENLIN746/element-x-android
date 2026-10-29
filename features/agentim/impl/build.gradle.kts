@@ -10,6 +10,7 @@ android { namespace = "io.element.android.features.agentim.impl" }
 setupDependencyInjection()
 dependencies {
     api(projects.features.agentim.api)
+    implementation(projects.appconfig)
     implementation(projects.libraries.agentim.api)
     implementation(projects.libraries.androidutils)
     implementation(projects.libraries.architecture)

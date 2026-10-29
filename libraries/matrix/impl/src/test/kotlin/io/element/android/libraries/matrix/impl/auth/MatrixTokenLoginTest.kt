@@ -76,4 +76,26 @@ class MatrixTokenLoginTest {
         assertThat(result.isFailure).isTrue()
         coVerify(exactly = 0) { client.restoreSession(any()) }
     }
+
+    @Test
+    fun `bootstrap binds the first device before SDK initialization and rejects device substitution`() = runTest {
+        val client = mockk<Client>()
+        every { client.homeserver() } returns "https://example.org"
+        every { client.slidingSyncVersion() } returns SlidingSyncVersion.NATIVE
+        var responseDevice = "BOUND_ANDROID"
+        val http = OkHttpClient.Builder().addInterceptor { chain ->
+            val request = chain.request()
+            val body = JSONObject(Buffer().also { request.body!!.writeTo(it) }.readUtf8())
+            assertThat(body.getString("device_id")).isEqualTo("BOUND_ANDROID")
+            Response.Builder().request(request).protocol(Protocol.HTTP_1_1).code(200).message("OK")
+                .body(JSONObject().put("user_id", "@agent:example.org").put("device_id", responseDevice)
+                    .put("access_token", "synthetic-access").toString().toResponseBody("application/json".toMediaType()))
+                .build()
+        }.build()
+        val login = MatrixTokenLogin(http)
+        assertThat(login.exchange(client, "synthetic-grant", "BOUND_ANDROID").deviceId).isEqualTo("BOUND_ANDROID")
+        responseDevice = "FOREIGN_ANDROID"
+        assertThat(runCatchingExceptions { login.exchange(client, "synthetic-grant", "BOUND_ANDROID") }.isFailure).isTrue()
+        coVerify(exactly = 0) { client.restoreSession(any()) }
+    }
 }

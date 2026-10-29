@@ -36,6 +36,7 @@ import io.element.android.libraries.matrix.impl.ClientBuilderSlidingSync
 import io.element.android.libraries.matrix.impl.NoOpClientSessionDelegate
 import io.element.android.libraries.matrix.impl.RustMatrixClientFactory
 import io.element.android.libraries.matrix.impl.RustTemporaryMatrixClient
+import io.element.android.libraries.matrix.impl.auth.bootstrap.MatrixBootstrapLogin
 import io.element.android.libraries.matrix.impl.auth.qrlogin.QrErrorMapper
 import io.element.android.libraries.matrix.impl.auth.qrlogin.SdkQrCodeLoginData
 import io.element.android.libraries.matrix.impl.auth.qrlogin.toStep
@@ -71,6 +72,7 @@ class RustMatrixAuthenticationService(
     private val featureFlagService: FeatureFlagService,
     private val clientEnterpriseHook: ClientEnterpriseHook,
     private val tokenLogin: MatrixTokenLogin = MatrixTokenLogin(),
+    private val bootstrapLogin: MatrixBootstrapLogin,
 ) : MatrixAuthenticationService {
     // Any existing Element Classic session that we want to try to import secrets from during login.
     private var elementClassicSession: ElementClassicSession? = null
@@ -195,6 +197,31 @@ class RustMatrixAuthenticationService(
             )
         }.mapFailure { it.mapAuthenticationException() }
     }
+
+    override suspend fun resumeAgentBootstrap(homeserver: String, userId: String, deviceId: String): Result<SessionId?> =
+        withContext(coroutineDispatchers.io) {
+            runCatchingExceptions {
+                val session = bootstrapLogin.existing(homeserver, userId, deviceId) ?: return@runCatchingExceptions null
+                if (bootstrapLogin.isPublished(userId)) {
+                    SessionId(userId)
+                } else {
+                    sessionPaths = null
+                    finalizeClientCreation(session)
+                }.also { bootstrapLogin.finish(userId, deviceId) }
+            }
+        }
+
+    override suspend fun loginWithAgentBootstrap(token: String, userId: String, deviceId: String): Result<SessionId> =
+        withContext(coroutineDispatchers.io) {
+            runCatchingExceptions {
+                val client = requireNotNull(currentClient) { "Select a homeserver first" }
+                val paths = requireNotNull(sessionPaths)
+                val session = bootstrapLogin.create(client, token, userId, deviceId, paths, pendingKey)
+                // The journal now owns these paths, including on cancellation/failure.
+                sessionPaths = null
+                finalizeClientCreation(session).also { bootstrapLogin.finish(userId, deviceId) }
+            }
+        }
 
     private var pendingOAuthAuthorizationData: OAuthAuthorizationData? = null
 
@@ -397,34 +424,7 @@ class RustMatrixAuthenticationService(
         sessionPaths: SessionPaths,
         qrCodeData: QrCodeData,
     ): Client {
-        Timber.d("Creating client for QR Code login with simplified sliding sync")
-        // The 2025 version of MSC4108 provides baseUrl; the 2024 version has null baseUrl and uses
-        // serverName instead, which can be null or malformed. We only enforce presence/non-blankness
-        // here and rely on serverNameOrHomeserverUrl()/the Rust builder layer to validate structure.
-        val baseUrlOrServerName = qrCodeData.baseUrl() ?: qrCodeData.serverName()
-
-        if (baseUrlOrServerName == null) {
-            // With the 2024 version of MSC4108 we treat the absence of serverName as meaning that
-            // the other device is not signed in.
-            Timber.e("The QR code is from a device that is not yet signed in")
-            throw HumanQrLoginException.OtherDeviceNotSignedIn()
-        }
-
-        if (baseUrlOrServerName.isBlank()) {
-            Timber.e("The QR code contains an empty base URL or server name, which is invalid")
-            throw HumanQrLoginException.Unknown()
-        }
-
-        return rustMatrixClientFactory
-            .getBaseClientBuilder(
-                sessionPaths = sessionPaths,
-                clientSecret = pendingKey,
-                slidingSyncType = ClientBuilderSlidingSync.Discovered,
-                isMessageSearchAvailable = isMessageSearchAvailable(),
-                sessionDelegate = NoOpClientSessionDelegate,
-            )
-            .serverNameOrHomeserverUrl(baseUrlOrServerName)
-            .build()
+        return QrLoginClientFactory(rustMatrixClientFactory).create(sessionPaths, qrCodeData, pendingKey, isMessageSearchAvailable())
     }
 
     private fun clear() {

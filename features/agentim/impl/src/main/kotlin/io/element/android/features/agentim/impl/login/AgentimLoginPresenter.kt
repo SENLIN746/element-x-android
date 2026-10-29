@@ -14,6 +14,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import dev.zacsweers.metro.Inject
+import io.element.android.libraries.agentim.api.onboarding.AgentimOnboardingService
+import io.element.android.libraries.agentim.api.onboarding.AgentimRegistrationRejected
 import io.element.android.libraries.architecture.Presenter
 import io.element.android.libraries.permissions.api.PermissionsEvent
 import io.element.android.libraries.permissions.api.PermissionsPresenter
@@ -25,6 +27,7 @@ import kotlinx.coroutines.launch
 @Inject
 class AgentimLoginPresenter(
     private val deviceLogin: AgentimDeviceLogin,
+    private val onboarding: AgentimOnboardingService,
     permissionsPresenterFactory: PermissionsPresenter.Factory,
     private val permissionAdvisor: LocalNetworkPermissionAdvisor,
 ) : Presenter<AgentimLoginState> {
@@ -32,32 +35,43 @@ class AgentimLoginPresenter(
 
     @Composable
     override fun present(): AgentimLoginState {
-        // Credentials deliberately remain in memory: never saveable state, preferences or logs.
-        var state by remember { mutableStateOf(AgentimLoginState(registering = true)) }
+        // UI contains public metadata only. The data layer owns the durable private proof.
+        var state by remember { mutableStateOf(AgentimLoginState()) }
         val scope = rememberCoroutineScope()
+        var refresh by remember { mutableStateOf(0) }
+        var restored by remember { mutableStateOf(false) }
+        LaunchedEffect(Unit) {
+            onboarding.pending().getOrNull()?.let { pending ->
+                state = state.copy(homeserver = pending.homeserver, localpart = pending.localpart, displayName = pending.displayName, resuming = true)
+            }
+            restored = true
+        }
+        LaunchedEffect(restored, state.homeserver, refresh) {
+            if (restored) {
+                state = state.copy(policy = null, policyLoading = true)
+                val policy = onboarding.policy(state.homeserver.trim()).getOrNull()
+                state = state.copy(policy = policy, policyLoading = false)
+            }
+        }
         val permission = permissionsPresenter.present()
         var pendingPermission by remember { mutableStateOf(false) }
         fun submit() {
             if (state.busy) return
             val form = state
-            state = state.copy(busy = true, failed = false)
+            state = state.copy(busy = true, failed = false, nameUnavailable = false)
             scope.launch {
-                state = state.copy(token = "", admission = "")
-                val result = deviceLogin.login(AgentimLoginRequest(
-                    homeserver = form.homeserver.trim(),
-                    token = form.token.trim(),
-                    admission = form.admission,
-                    localpart = form.localpart.trim(),
-                    displayName = form.displayName.trim(),
-                    registering = form.registering,
-                ))
+                val result = deviceLogin.register(form.homeserver.trim(), form.localpart.trim(), form.displayName.trim())
                 result.exceptionOrNull()?.let { if (it is CancellationException) throw it }
+                if (result.isFailure) {
+                    state = state.copy(resuming = false)
+                    onboarding.pending().getOrNull()?.let { pending ->
+                        state = state.copy(homeserver = pending.homeserver, localpart = pending.localpart, displayName = pending.displayName, resuming = true)
+                    }
+                }
                 state = state.copy(
                     busy = false,
                     failed = result.isFailure,
-                    originChanged = result.exceptionOrNull() is AgentimHomeserverOriginChanged,
-                    token = "",
-                    admission = ""
+                    nameUnavailable = (result.exceptionOrNull() as? AgentimRegistrationRejected)?.code == "M_USER_IN_USE",
                 )
             }
         }
@@ -75,12 +89,13 @@ class AgentimLoginPresenter(
         return state.copy(permissionDialog = dialog, eventSink = { event ->
             if (!state.busy) {
                 state = when (event) {
-                    is AgentimLoginEvent.Homeserver -> state.copy(homeserver = event.value)
-                    is AgentimLoginEvent.Token -> state.copy(token = event.value)
-                    is AgentimLoginEvent.Admission -> state.copy(admission = event.value)
+                    is AgentimLoginEvent.Homeserver -> state.copy(homeserver = event.value, policy = null, policyLoading = true)
                     is AgentimLoginEvent.Localpart -> state.copy(localpart = event.value)
                     is AgentimLoginEvent.DisplayName -> state.copy(displayName = event.value)
-                    AgentimLoginEvent.ToggleRegistration -> state.copy(registering = !state.registering, failed = false, token = "", admission = "")
+                    AgentimLoginEvent.RefreshPolicy -> {
+                        refresh += 1
+                        state
+                    }
                     AgentimLoginEvent.RequestPermission -> {
                         permission.eventSink(if (dialog == LocalNetworkPermissionDialog.Settings) {
                             PermissionsEvent.OpenSystemSettingAndCloseDialog

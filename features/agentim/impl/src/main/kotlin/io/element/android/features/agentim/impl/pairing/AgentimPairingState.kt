@@ -5,11 +5,12 @@
 
 package io.element.android.features.agentim.impl.pairing
 
+import io.element.android.appconfig.AuthenticationConfig
 import io.element.android.libraries.agentim.api.pairing.AgentimPairingRequest
 import io.element.android.libraries.permissions.api.localnetwork.LocalNetworkPermissionDialog
 
 data class AgentimPairingState(
-    val homeserver: String = "",
+    val homeserver: String = AuthenticationConfig.AGENTIM_HOMESERVER,
     val targetUserId: String = "",
     val deviceName: String = "AgentIM Android",
     val phase: PairingScreenPhase = PairingScreenPhase.Idle,

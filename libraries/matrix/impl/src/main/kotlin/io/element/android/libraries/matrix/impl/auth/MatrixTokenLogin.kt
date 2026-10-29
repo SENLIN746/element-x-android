@@ -37,13 +37,18 @@ class MatrixTokenLogin @Inject constructor() {
     }
 
     suspend fun login(client: Client, token: String) {
+        client.restoreSession(exchange(client, token))
+    }
+
+    internal suspend fun exchange(client: Client, token: String, deviceId: String? = null): Session {
         require(token.isNotBlank())
         val base = client.homeserver().toHttpUrl()
         require(base.isHttps || allowsDevelopmentHttp(base.host))
         val body = JSONObject().put("type", "m.login.token").put("token", token)
             .put("initial_device_display_name", "AgentIM Android")
             .put("refresh_token", true)
-        // device_id is deliberately absent: the server allocates a new independent device.
+        // Pairing omits device_id; public onboarding uses its proof-bound first device.
+        if (deviceId != null) body.put("device_id", deviceId)
         val request = Request.Builder().url(base.newBuilder().addPathSegments("_matrix/client/v3/login").build())
             .header("Cache-Control", "no-store")
             .post(body.toString().toRequestBody("application/json".toMediaType()))
@@ -63,7 +68,7 @@ class MatrixTokenLogin @Inject constructor() {
                 slidingSyncVersion = client.slidingSyncVersion(),
             )
         }
-        // These credentials were created by this Android login. No external device/store/key is imported.
-        client.restoreSession(session)
+        require(deviceId == null || session.deviceId == deviceId) { "Initial device binding changed" }
+        return session
     }
 }

@@ -136,6 +136,7 @@ class AgentimTokenAuthenticationTest {
     ): RustMatrixAuthenticationService {
         val sessionStore = InMemorySessionStore(updateUserProfileResult = { _, _, _, _ -> })
         return RustMatrixAuthenticationService(
+            bootstrapLogin = mockk(),
             sessionPathsFactory = sessionPathsFactory,
             coroutineDispatchers = testCoroutineDispatchers(),
             sessionStore = sessionStore,

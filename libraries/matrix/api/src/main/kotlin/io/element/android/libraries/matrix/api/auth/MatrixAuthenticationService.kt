@@ -49,6 +49,14 @@ interface MatrixAuthenticationService {
     /** Consumes a short-lived m.login.token and creates a new Matrix device with its own encryption store. */
     suspend fun loginWithToken(token: String): Result<SessionId>
 
+    /** Restores only this app's journaled first device; never replaces an existing account/device. */
+    suspend fun resumeAgentBootstrap(homeserver: String, userId: String, deviceId: String): Result<SessionId?> =
+        Result.failure(UnsupportedOperationException("Public Agent onboarding is unavailable"))
+
+    /** Journals a proof-bound self-created session before initializing its native encryption store. */
+    suspend fun loginWithAgentBootstrap(token: String, userId: String, deviceId: String): Result<SessionId> =
+        Result.failure(UnsupportedOperationException("Public Agent onboarding is unavailable"))
+
     /*
      * OAuth part.
      */

@@ -16,6 +16,7 @@ setupDependencyInjection()
 dependencies {
     api(projects.libraries.agentim.api)
     implementation(projects.libraries.matrix.api)
+    implementation(projects.libraries.androidutils)
     implementation(projects.libraries.sessionStorage.api)
     implementation(projects.libraries.core)
     implementation(projects.libraries.di)

@@ -6,7 +6,7 @@
 package io.element.android.features.agentim.impl.login
 
 import com.google.common.truth.Truth.assertThat
-import io.element.android.libraries.agentim.api.AgentimEnrollmentService
+import io.element.android.libraries.agentim.api.onboarding.AgentimOnboardingService
 import io.element.android.libraries.agentim.api.pairing.AgentimPairingGrant
 import io.element.android.libraries.matrix.api.auth.MatrixAuthenticationService
 import io.element.android.libraries.matrix.api.auth.MatrixHomeServerDetails
@@ -20,8 +20,8 @@ import org.junit.Test
 
 class AgentimDeviceLoginTest {
     private val authentication = mockk<MatrixAuthenticationService>()
-    private val enrollment = mockk<AgentimEnrollmentService>()
-    private val subject = AgentimDeviceLogin(authentication, enrollment)
+    private val onboarding = mockk<AgentimOnboardingService>()
+    private val subject = AgentimDeviceLogin(authentication, onboarding)
 
     @Before
     fun prepare() {
@@ -29,29 +29,23 @@ class AgentimDeviceLoginTest {
     }
 
     @Test
-    fun `cross origin delegation is rejected before admission or login token is sent`() = runTest {
+    fun `cross origin delegation is rejected before pairing grant is consumed`() = runTest {
         coEvery { authentication.setHomeserver("https://entry.example") } returns
             Result.success(MatrixHomeServerDetails("https://delegated.example", false, false))
-        val result = subject.login(request("https://entry.example"))
-        assertThat(result.exceptionOrNull()).isInstanceOf(AgentimHomeserverOriginChanged::class.java)
-        coVerify(exactly = 0) { enrollment.register(any(), any(), any(), any()) }
+        assertThat(subject.prepare("https://entry.example").exceptionOrNull()).isInstanceOf(AgentimHomeserverOriginChanged::class.java)
         coVerify(exactly = 0) { authentication.loginWithToken(any()) }
     }
 
     @Test
-    fun `same origin enrollment uses the resolved base used by Matrix device login`() = runTest {
-        coEvery { authentication.setHomeserver("https://hs.example:443") } returns
-            Result.success(MatrixHomeServerDetails("https://hs.example/matrix/", false, false))
-        coEvery { enrollment.register("https://hs.example/matrix/", "synthetic-admission", "agent", "Agent") } returns Result.success("short-token")
-        coEvery { authentication.loginWithToken("short-token") } returns Result.success(A_USER_ID)
-        assertThat(subject.login(request("https://hs.example:443")).getOrNull()).isEqualTo(A_USER_ID)
-        coVerify(exactly = 1) { enrollment.register("https://hs.example/matrix/", "synthetic-admission", "agent", "Agent") }
-        coVerify(exactly = 1) { authentication.loginWithToken("short-token") }
+    fun `creation delegates to recoverable public onboarding without a permit`() = runTest {
+        coEvery { onboarding.register("https://hs.example", "agent", "Agent") } returns Result.success(A_USER_ID.value)
+        assertThat(subject.register("https://hs.example", "agent", "Agent").getOrThrow()).isEqualTo(A_USER_ID)
+        coVerify(exactly = 0) { authentication.setHomeserver(any()) }
     }
 
     @Test
-    fun `credential-bearing homeserver URLs are rejected before SDK discovery`() = runTest {
-        assertThat(subject.login(request("https://user:secret@hs.example")).isFailure).isTrue()
+    fun `credential bearing homeserver URLs are rejected before SDK discovery`() = runTest {
+        assertThat(subject.prepare("https://user:secret@hs.example").isFailure).isTrue()
         coVerify(exactly = 0) { authentication.setHomeserver(any()) }
     }
 
@@ -63,6 +57,4 @@ class AgentimDeviceLoginTest {
         assertThat(subject.connect(grant).isFailure).isTrue()
         coVerify(exactly = 1) { authentication.loginWithToken("synthetic-pairing-grant") }
     }
-
-    private fun request(homeserver: String) = AgentimLoginRequest(homeserver, "", "synthetic-admission", "agent", "Agent", true)
 }

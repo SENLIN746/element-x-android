@@ -9,6 +9,8 @@
 package io.element.android.appconfig
 
 object AuthenticationConfig {
+    const val AGENTIM_HOMESERVER = "https://agentims.shipkitx.com"
+
     /**
      * URL with some docs that explain what's sliding sync and how to add it to your home server.
      */
