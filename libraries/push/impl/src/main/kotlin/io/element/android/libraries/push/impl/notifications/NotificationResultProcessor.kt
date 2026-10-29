@@ -249,6 +249,7 @@ class DefaultNotificationResultProcessor(
     }
 
     private suspend fun handleRingingCallEvent(notifiableEvent: NotifiableRingingCallEvent) {
+        notificationChannels.initialize()
         Timber.i("## handleInternal() : Incoming call.")
         elementCallEntryPoint.handleIncomingCall(
             callData = CallData(

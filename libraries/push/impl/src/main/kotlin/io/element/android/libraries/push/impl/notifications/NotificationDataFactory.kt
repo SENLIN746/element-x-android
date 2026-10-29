@@ -23,6 +23,8 @@ import io.element.android.libraries.push.impl.notifications.model.NotifiableMess
 import io.element.android.libraries.push.impl.notifications.model.SimpleNotifiableEvent
 
 interface NotificationDataFactory {
+    suspend fun prepare()
+
     suspend fun toNotifications(
         messages: List<NotifiableMessageEvent>,
         imageLoader: ImageLoader,
@@ -65,6 +67,8 @@ class DefaultNotificationDataFactory(
     private val summaryGroupMessageCreator: SummaryGroupMessageCreator,
     private val activeNotificationsProvider: ActiveNotificationsProvider,
 ) : NotificationDataFactory {
+    override suspend fun prepare() = notificationCreator.prepare()
+
     override suspend fun toNotifications(
         messages: List<NotifiableMessageEvent>,
         imageLoader: ImageLoader,

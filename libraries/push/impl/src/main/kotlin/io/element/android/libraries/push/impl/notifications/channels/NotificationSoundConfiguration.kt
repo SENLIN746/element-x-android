@@ -9,12 +9,11 @@ import io.element.android.libraries.preferences.api.store.AppPreferencesStore
 import io.element.android.libraries.preferences.api.store.NotificationSound
 import io.element.android.libraries.preferences.api.store.NotificationSoundChannelConfig
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
 
 /** Read the persisted channel versions and preserve the legacy bundled message tone. */
-internal fun loadNotificationSoundConfiguration(store: AppPreferencesStore): NotificationSoundChannelConfig = runBlocking(Dispatchers.IO) {
-    // Session publication may construct channels inside an active UI flow callback.
-    // Give the suspending read its own dispatcher instead of inheriting that event loop.
+internal suspend fun loadNotificationSoundConfiguration(store: AppPreferencesStore): NotificationSoundChannelConfig = withContext(Dispatchers.IO) {
+    // Preference IO suspends; constructors and session flow callbacks never wait on a blocking bridge.
     val initial = store.getNotificationSoundChannelConfig()
     // SystemDefault meant our bundled tone before channel versions were introduced.
     // Migrate only untouched legacy state, retaining explicit choices and call settings.

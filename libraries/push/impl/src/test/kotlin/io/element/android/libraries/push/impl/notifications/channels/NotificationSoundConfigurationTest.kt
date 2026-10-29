@@ -45,7 +45,7 @@ class NotificationSoundConfigurationTest {
     }
 
     @Test
-    fun `legacy migration is idempotent and retains the call ringtone`() {
+    fun `legacy migration is idempotent and retains the call ringtone`() = runBlocking {
         val ringtone = NotificationSound.Custom("content://synthetic/ringtone")
         val stored = InMemoryAppPreferencesStore(callRingtone = ringtone, callRingtoneChannelVersion = 4)
         val migrated = loadNotificationSoundConfiguration(stored)
@@ -57,7 +57,7 @@ class NotificationSoundConfigurationTest {
     }
 
     @Test
-    fun `versioned explicit system tone is preserved`() {
+    fun `versioned explicit system tone is preserved`() = runBlocking {
         val stored = InMemoryAppPreferencesStore(messageSoundChannelVersion = 2)
         val config = loadNotificationSoundConfiguration(stored)
         assertThat(config.messageSound).isEqualTo(NotificationSound.SystemDefault)

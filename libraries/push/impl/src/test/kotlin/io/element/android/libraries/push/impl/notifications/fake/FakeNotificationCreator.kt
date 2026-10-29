@@ -45,6 +45,8 @@ class FakeNotificationCreator(
     val createUnregistrationNotificationResult: LambdaOneParamRecorder<NotificationAccountParams, Notification> =
         lambdaRecorder { _ -> A_NOTIFICATION },
 ) : NotificationCreator {
+    override suspend fun prepare() = Unit
+
     override suspend fun createMessagesListNotification(
         notificationAccountParams: NotificationAccountParams,
         roomInfo: RoomEventGroupInfo,

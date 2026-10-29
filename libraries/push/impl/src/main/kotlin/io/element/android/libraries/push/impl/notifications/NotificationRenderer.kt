@@ -47,6 +47,7 @@ class NotificationRenderer(
         eventsToProcess: List<NotifiableEvent>,
         imageLoader: ImageLoader,
     ) {
+        notificationDataFactory.prepare()
         val color = enterpriseService.brandColorsFlow(currentUser.userId).first()?.toArgb()
             ?: NotificationConfig.NOTIFICATION_ACCENT_COLOR
         val numberOfAccounts = sessionStore.numberOfSessions()

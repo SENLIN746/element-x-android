@@ -32,10 +32,13 @@ import io.element.android.libraries.di.annotations.ApplicationContext
 import io.element.android.libraries.matrix.api.core.SessionId
 import io.element.android.libraries.preferences.api.store.AppPreferencesStore
 import io.element.android.libraries.preferences.api.store.NotificationSound
+import io.element.android.libraries.preferences.api.store.NotificationSoundChannelConfig
 import io.element.android.libraries.push.api.notifications.NotificationSoundUpdater
 import io.element.android.libraries.push.impl.R
 import io.element.android.services.toolbox.api.strings.StringProvider
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import timber.log.Timber
 
@@ -63,6 +66,9 @@ internal fun ringingCallNotificationChannelId(version: Int): String =
  * channels when the user picks a new sound URI in settings.
  */
 interface NotificationChannels : NotificationSoundUpdater {
+    /** Complete persisted sound migration before building notifications, without blocking the caller thread. */
+    suspend fun initialize()
+
     /**
      * Get the channel for incoming call.
      * @param ring true if the device should ring when receiving the call.
@@ -103,22 +109,41 @@ class DefaultNotificationChannels(
 
     // Serializes concurrent recreate* calls; readers stay lock-free via @Volatile on the id fields.
     private val recreateLock = Any()
+    private var updatedMessageSound: Pair<NotificationSound, Int>? = null
+    private var updatedCallSound: Pair<NotificationSound, Int>? = null
 
-    init {
-        createNotificationChannels()
+    private val initializationMutex = Mutex()
+    private var initialized = false
+
+    override suspend fun initialize() = initializationMutex.withLock {
+        if (!initialized) {
+            if (supportNotificationChannels()) {
+                val config = loadNotificationSoundConfiguration(appPreferencesStore)
+                synchronized(recreateLock) { createNotificationChannels(config) }
+            }
+            initialized = true
+        }
     }
 
     /**
      * Create notification channels.
      */
-    private fun createNotificationChannels() {
+    private fun createNotificationChannels(persisted: NotificationSoundChannelConfig) {
+        // A settings edit may finish while the initial preference snapshot is suspended.
+        // Keep its newer version and sound rather than publishing an older channel.
+        val message = updatedMessageSound?.takeIf { it.second >= persisted.messageSoundVersion }
+        val call = updatedCallSound?.takeIf { it.second >= persisted.callRingtoneVersion }
+        val config = persisted.copy(
+            messageSound = message?.first ?: persisted.messageSound,
+            messageSoundVersion = message?.second ?: persisted.messageSoundVersion,
+            callRingtone = call?.first ?: persisted.callRingtone,
+            callRingtoneVersion = call?.second ?: persisted.callRingtoneVersion,
+        )
         if (!supportNotificationChannels()) {
             return
         }
 
         val accentColor = NotificationConfig.NOTIFICATION_ACCENT_COLOR
-
-        val config = loadNotificationSoundConfiguration(appPreferencesStore)
 
         currentNoisyChannelId = noisyNotificationChannelId(config.messageSoundVersion)
         currentRingingCallChannelId = ringingCallNotificationChannelId(config.callRingtoneVersion)
@@ -328,6 +353,7 @@ class DefaultNotificationChannels(
             notificationManager.createNotificationChannel(
                 buildNoisyChannel(newChannelId, soundUri, accentColor)
             )
+            updatedMessageSound = sound to version
             currentNoisyChannelId = newChannelId
             deleteStaleVersionedChannels(NOISY_NOTIFICATION_CHANNEL_ID_BASE, newChannelId)
         }
@@ -344,12 +370,14 @@ class DefaultNotificationChannels(
             notificationManager.createNotificationChannel(
                 buildRingingCallChannel(newChannelId, soundUri, accentColor)
             )
+            updatedCallSound = sound to version
             currentRingingCallChannelId = newChannelId
             deleteStaleVersionedChannels(RINGING_CALL_NOTIFICATION_CHANNEL_ID_BASE, newChannelId)
         }
     }
 
     override suspend fun readNoisyChannelSound(): NotificationSound? {
+        initialize()
         return readChannelSound(
             channelId = currentNoisyChannelId,
             bundledUri = bundledMessageSoundUri(),
@@ -359,6 +387,7 @@ class DefaultNotificationChannels(
     }
 
     override suspend fun readRingingCallChannelSound(): NotificationSound? {
+        initialize()
         return readChannelSound(
             channelId = currentRingingCallChannelId,
             bundledUri = null,

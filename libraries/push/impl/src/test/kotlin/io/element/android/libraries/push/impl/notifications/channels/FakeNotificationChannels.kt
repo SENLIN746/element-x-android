@@ -23,6 +23,8 @@ class FakeNotificationChannels(
     var readNoisyChannelSoundLambda: () -> NotificationSound? = { null },
     var readRingingCallChannelSoundLambda: () -> NotificationSound? = { null },
 ) : NotificationChannels {
+    override suspend fun initialize() = Unit
+
     override fun getChannelForIncomingCall(ring: Boolean): String {
         return channelForIncomingCall(ring)
     }

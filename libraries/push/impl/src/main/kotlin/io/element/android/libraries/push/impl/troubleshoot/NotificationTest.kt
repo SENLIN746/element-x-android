@@ -48,6 +48,7 @@ class NotificationTest(
 
     override suspend fun run(coroutineScope: CoroutineScope) {
         delegate.start()
+        notificationCreator.prepare()
         val color = enterpriseService.brandColorsFlow(sessionId).first()?.toArgb()
             ?: NotificationConfig.NOTIFICATION_ACCENT_COLOR
         val notification = notificationCreator.createDiagnosticNotification(color)

@@ -32,6 +32,7 @@ class DefaultServiceUnregisteredHandler(
     private val sessionStore: SessionStore,
 ) : ServiceUnregisteredHandler {
     override suspend fun handle(userId: UserId) {
+        notificationCreator.prepare()
         val color = enterpriseService.brandColorsFlow(userId).first()?.toArgb()
             ?: NotificationConfig.NOTIFICATION_ACCENT_COLOR
         val hasMultipleAccounts = sessionStore.numberOfSessions() > 1
