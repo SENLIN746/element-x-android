@@ -9,6 +9,7 @@ import com.google.common.truth.Truth.assertThat
 import io.element.android.libraries.matrix.api.MatrixClient
 import io.element.android.libraries.matrix.api.MatrixClientProvider
 import io.element.android.libraries.matrix.api.core.DeviceId
+import io.element.android.libraries.matrix.api.core.SessionId
 import io.element.android.libraries.matrix.api.sync.SyncState
 import io.element.android.libraries.sessionstorage.test.aSessionData
 import io.mockk.coEvery
@@ -37,7 +38,7 @@ class OnboardingCompletionTest {
         every { client.deviceId } returns DeviceId("device")
         every { client.syncService.syncState } returns sync
         every { http.base("https://example") } returns "https://example"
-        coEvery { provider.getOrRestore(any()) } returns Result.success(client)
+        coEvery { provider.getOrRestore(SessionId("@agent:example")) } returns Result.success(client)
         val service = OnboardingCompletion(mockk(), mockk(), provider, http)
         assertThat(service.complete(attempt, session)).isFalse()
         coVerify(exactly = 0) { http.request(any(), any(), any(), any()) }
