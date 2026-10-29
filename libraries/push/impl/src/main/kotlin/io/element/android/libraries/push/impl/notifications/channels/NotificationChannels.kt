@@ -36,7 +36,6 @@ import io.element.android.libraries.push.api.notifications.NotificationSoundUpda
 import io.element.android.libraries.push.impl.R
 import io.element.android.services.toolbox.api.strings.StringProvider
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import timber.log.Timber
 
@@ -119,21 +118,7 @@ class DefaultNotificationChannels(
 
         val accentColor = NotificationConfig.NOTIFICATION_ACCENT_COLOR
 
-        // Single-snapshot read; keep this path minimal — extra ContentResolver lookups here would
-        // risk a cold-start ANR.
-        val config = runBlocking {
-            val initial = appPreferencesStore.getNotificationSoundChannelConfig()
-            // Pre-dialog builds mapped the noisy `SystemDefault` to our bundled message.mp3.
-            // Now `SystemDefault` means Android's system tone, so untouched legacy state would
-            // silently flip sound. Promote it to `ElementDefault` once, gated on version==0 so the
-            // migration is idempotent.
-            if (initial.messageSoundVersion == 0 && initial.messageSound == NotificationSound.SystemDefault) {
-                appPreferencesStore.setMessageSoundAndIncrementVersion(NotificationSound.ElementDefault, title = null)
-                appPreferencesStore.getNotificationSoundChannelConfig()
-            } else {
-                initial
-            }
-        }
+        val config = loadNotificationSoundConfiguration(appPreferencesStore)
 
         currentNoisyChannelId = noisyNotificationChannelId(config.messageSoundVersion)
         currentRingingCallChannelId = ringingCallNotificationChannelId(config.callRingtoneVersion)
