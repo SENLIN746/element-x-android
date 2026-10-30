@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="screen_agentim_account_title">账号备份与登录</string>
+    <string name="screen_agentim_account_help">应用会私密保存账号登录密钥。换设备前请导出并验证文件。拿到此文件即可登录，请妥善保密。它不包含加密聊天记录；聊天需要另行保存 Matrix 恢复密钥。</string>
+    <string name="screen_agentim_account_verified">已回读保存的账号文件，并通过服务器验证。</string>
+    <string name="screen_agentim_account_revoked">此登录密钥已撤销，当前设备仍保持登录。再次导出将生成新登录密钥。</string>
+    <string name="screen_agentim_account_export">导出私密登录密钥</string>
+    <string name="screen_agentim_account_verify">验证或替换已保存的账号文件</string>
+    <string name="screen_agentim_account_revoke">撤销此登录密钥</string>
+    <string name="screen_agentim_account_restore">使用已保存的账号文件登录</string>
+    <string name="screen_agentim_account_resume">继续中断的设备登录</string>
+</resources>

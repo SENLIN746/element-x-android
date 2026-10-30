@@ -6,6 +6,7 @@
 package io.element.android.libraries.agentim.impl.onboarding
 
 import dev.zacsweers.metro.Inject
+import io.element.android.libraries.agentim.impl.account.AccountKeyManager
 import io.element.android.libraries.core.extensions.runCatchingExceptions
 import io.element.android.libraries.matrix.api.MatrixClientProvider
 import io.element.android.libraries.matrix.api.core.SessionId
@@ -25,6 +26,7 @@ class OnboardingCompletion(
     private val sessions: SessionStore,
     private val clients: MatrixClientProvider,
     private val http: OnboardingHttp,
+    private val accountKeys: AccountKeyManager,
 ) {
     internal suspend fun observe() {
         combine(sessions.sessionsFlow(), attempts.changes) { all, _ -> all }.collectLatest { all ->
@@ -52,6 +54,7 @@ class OnboardingCompletion(
         require(keys.getString("user_id") == session.userId && keys.getString("device_id") == attempt.deviceId)
         val publicKeys = keys.getJSONObject("keys")
         if (listOf("ed25519", "curve25519").any { publicKeys.optString("$it:${attempt.deviceId}").isBlank() }) return false
+        accountKeys.ensure(session.userId)
         val response = http.request(
             attempt.homeserver,
             "/_synapse/client/agentim/v2/registration/${attempt.attemptId}/complete",

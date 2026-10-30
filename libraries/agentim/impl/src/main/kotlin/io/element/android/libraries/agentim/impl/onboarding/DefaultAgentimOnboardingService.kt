@@ -8,6 +8,7 @@ package io.element.android.libraries.agentim.impl.onboarding
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesBinding
 import dev.zacsweers.metro.SingleIn
+import io.element.android.libraries.agentim.api.account.AgentAccountAccessService
 import io.element.android.libraries.agentim.api.onboarding.AgentimOnboardingService
 import io.element.android.libraries.agentim.api.onboarding.AgentimRegistrationPolicy
 import io.element.android.libraries.agentim.api.onboarding.AgentimRegistrationRejected
@@ -30,6 +31,7 @@ class DefaultAgentimOnboardingService(
     private val attempts: OnboardingAttempts,
     private val authentication: MatrixAuthenticationService,
     private val completion: OnboardingCompletion,
+    private val accountAccess: AgentAccountAccessService,
     @AppCoroutineScope private val scope: CoroutineScope,
 ) : AgentimOnboardingService {
     private val started = AtomicBoolean()
@@ -44,6 +46,7 @@ class DefaultAgentimOnboardingService(
         if (!started.compareAndSet(false, true)) return
         // Only published sessions restore in the background. An unpublished journal resumes
         // through the login screen, so it cannot race another native authentication flow.
+        accountAccess.start()
         scope.launch(Dispatchers.IO) { completion.observe() }
     }
 

@@ -314,6 +314,7 @@ private fun OnBoardingButtons(
                     .fillMaxWidth()
             )
         }
+        HumanSignupLink(state.defaultAccountProvider)
         if (state.canLoginWithQrCode) {
             TextButton(
                 text = stringResource(id = R.string.screen_onboarding_sign_in_with_qr_code),

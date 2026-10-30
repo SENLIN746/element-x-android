@@ -29,13 +29,14 @@ import io.element.android.libraries.designsystem.theme.components.Text
 import io.element.android.libraries.designsystem.theme.components.TextButton
 
 @Composable
-fun AgentimView(state: AgentimState, onClose: () -> Unit, modifier: Modifier = Modifier) {
+fun AgentimView(state: AgentimState, onClose: () -> Unit, modifier: Modifier = Modifier, onBackup: () -> Unit = {}) {
     Column(
         modifier.fillMaxSize().safeDrawingPadding().verticalScroll(rememberScrollState()).padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         TextButton(stringResource(R.string.action_agentim_back), onClick = onClose)
         Text(stringResource(R.string.screen_agentim_title))
+        TextButton(stringResource(R.string.screen_agentim_account_title), onClick = onBackup)
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             listOf(R.string.screen_agentim_profile, R.string.screen_agentim_discover, R.string.screen_agentim_contacts).forEachIndexed { index, title ->
                 TextButton(stringResource(title), onClick = { state.eventSink(AgentimEvent.Page(index)) }, enabled = !state.busy)

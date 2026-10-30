@@ -48,7 +48,7 @@ class OnboardingServiceTest {
 
     @Test
     fun `proof is durable before allocation and reused after lost create reply`() = runTest {
-        val service = DefaultAgentimOnboardingService(http, attempts, auth, mockk(), backgroundScope)
+        val service = DefaultAgentimOnboardingService(http, attempts, auth, mockk(), mockk(relaxed = true), backgroundScope)
         var first: String? = null
         coEvery { http.request(base, path, ofType(JSONObject::class), null) } coAnswers {
             val body = arg<JSONObject>(2)
@@ -62,14 +62,14 @@ class OnboardingServiceTest {
             error("synthetic lost reply")
         }
         assertThat(service.register(base, "agent", "Agent").isFailure).isTrue()
-        val restarted = DefaultAgentimOnboardingService(http, OnboardingAttempts(files), auth, mockk(), backgroundScope)
+        val restarted = DefaultAgentimOnboardingService(http, OnboardingAttempts(files), auth, mockk(), mockk(relaxed = true), backgroundScope)
         assertThat(restarted.register(base, "agent", "Agent").isFailure).isTrue()
         coVerify(exactly = 2) { http.request(base, path, ofType(JSONObject::class), null) }
     }
 
     @Test
     fun `closed or unknown capability cannot allocate an identity or proof`() = runTest {
-        val service = DefaultAgentimOnboardingService(http, attempts, auth, mockk(), backgroundScope)
+        val service = DefaultAgentimOnboardingService(http, attempts, auth, mockk(), mockk(relaxed = true), backgroundScope)
         coEvery { http.request(base, path, null, null) } returns policy("closed")
         assertThat(service.register(base, "agent", "").isFailure).isTrue()
         coEvery { http.request(base, path, null, null) } throws IllegalStateException("offline")
@@ -83,7 +83,7 @@ class OnboardingServiceTest {
         val attempt = attempts.begin(base, "agent", "")
         attempts.bind(attempt, "@agent:example")
         coEvery { auth.resumeAgentBootstrap(base, "@agent:example", attempt.deviceId) } returns Result.success(SessionId("@agent:example"))
-        val service = DefaultAgentimOnboardingService(http, attempts, auth, mockk(), backgroundScope)
+        val service = DefaultAgentimOnboardingService(http, attempts, auth, mockk(), mockk(relaxed = true), backgroundScope)
         assertThat(service.register(base, "agent", "").getOrThrow()).isEqualTo("@agent:example")
         coVerify(exactly = 0) { auth.setHomeserver(any()) }
         coVerify(exactly = 0) { http.request(any(), any(), any(), any()) }
@@ -102,7 +102,7 @@ class OnboardingServiceTest {
             assertThat(OnboardingAttempts(files).pending()?.userId).isEqualTo("@agent:example")
             Result.success(SessionId("@agent:example"))
         }
-        val service = DefaultAgentimOnboardingService(http, attempts, auth, mockk(), backgroundScope)
+        val service = DefaultAgentimOnboardingService(http, attempts, auth, mockk(), mockk(relaxed = true), backgroundScope)
         assertThat(service.register(base, "agent", "").getOrThrow()).isEqualTo("@agent:example")
         grant.put("device_id", "foreign-device")
         assertThat(service.register(base, "agent", "").isFailure).isTrue()
@@ -112,14 +112,14 @@ class OnboardingServiceTest {
     @Test
     fun `discovered foreign origin receives neither proof nor registration`() = runTest {
         coEvery { auth.setHomeserver(base) } returns Result.success(MatrixHomeServerDetails("https://foreign.example", false, false))
-        val service = DefaultAgentimOnboardingService(http, attempts, auth, mockk(), backgroundScope)
+        val service = DefaultAgentimOnboardingService(http, attempts, auth, mockk(), mockk(relaxed = true), backgroundScope)
         assertThat(service.register(base, "agent", "").isFailure).isTrue()
         coVerify(exactly = 0) { http.request(base, path, ofType(JSONObject::class), null) }
     }
 
     @Test
     fun `definitive name rejection allows another name but unknown failure preserves proof`() = runTest {
-        val service = DefaultAgentimOnboardingService(http, attempts, auth, mockk(), backgroundScope)
+        val service = DefaultAgentimOnboardingService(http, attempts, auth, mockk(), mockk(relaxed = true), backgroundScope)
         coEvery { http.request(base, path, ofType(JSONObject::class), null) } throws AgentimRegistrationRejected("M_USER_IN_USE")
         assertThat(service.register(base, "occupied", "").isFailure).isTrue()
         assertThat(durable).isNull()

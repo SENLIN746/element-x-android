@@ -42,7 +42,6 @@ import io.element.android.libraries.matrix.impl.auth.qrlogin.SdkQrCodeLoginData
 import io.element.android.libraries.matrix.impl.auth.qrlogin.toStep
 import io.element.android.libraries.matrix.impl.exception.mapClientException
 import io.element.android.libraries.matrix.impl.keys.SecretGenerator
-import io.element.android.libraries.matrix.impl.mapper.toSessionData
 import io.element.android.libraries.matrix.impl.paths.SessionPathsFactory
 import io.element.android.libraries.sessionstorage.api.LoginType
 import io.element.android.libraries.sessionstorage.api.SessionData
@@ -163,13 +162,7 @@ class RustMatrixAuthenticationService(
                 // Ensure that the user is not already logged in with the same account
                 ensureNotAlreadyLoggedIn(client)
                 ClassicSessionSecrets.importInto(elementClassicSession, client)
-                val sessionData = client.session()
-                    .toSessionData(
-                        isTokenValid = true,
-                        loginType = LoginType.PASSWORD,
-                        passphrase = pendingKey.formattedAsString(),
-                        sessionPaths = currentSessionPaths,
-                    )
+                val sessionData = client.snapshotSession(currentSessionPaths, pendingKey, LoginType.PASSWORD)
                 finalizeClientCreation(sessionData)
             }.mapFailure { failure ->
                 Timber.e(failure, "Failed to login")
@@ -188,12 +181,7 @@ class RustMatrixAuthenticationService(
             tokenLogin.login(client, token)
             ensureNotAlreadyLoggedIn(client)
             finalizeClientCreation(
-                client.session().toSessionData(
-                    isTokenValid = true,
-                    loginType = LoginType.SSO,
-                    passphrase = pendingKey.formattedAsString(),
-                    sessionPaths = paths,
-                )
+                client.snapshotSession(paths, pendingKey, LoginType.SSO)
             )
         }.mapFailure { it.mapAuthenticationException() }
     }
@@ -222,6 +210,18 @@ class RustMatrixAuthenticationService(
                 finalizeClientCreation(session).also { bootstrapLogin.finish(userId, deviceId) }
             }
         }
+
+    override suspend fun loginWithAccountSession(
+        accessToken: String, refreshToken: String?, userId: String, deviceId: String,
+    ): Result<SessionId> = withContext(coroutineDispatchers.io) {
+        runCatchingExceptions {
+            val client = requireNotNull(currentClient) { "Select a homeserver first" }
+            val paths = requireNotNull(sessionPaths)
+            val session = bootstrapLogin.importSession(client, accessToken, refreshToken, userId, deviceId, paths, pendingKey)
+            sessionPaths = null
+            finalizeClientCreation(session).also { bootstrapLogin.finish(userId, deviceId) }
+        }
+    }
 
     private var pendingOAuthAuthorizationData: OAuthAuthorizationData? = null
 
@@ -292,12 +292,7 @@ class RustMatrixAuthenticationService(
                 // Ensure that the user is not already logged in with the same account
                 ensureNotAlreadyLoggedIn(client)
                 ClassicSessionSecrets.importInto(elementClassicSession, client)
-                val sessionData = client.session().toSessionData(
-                    isTokenValid = true,
-                    loginType = LoginType.OIDC,
-                    passphrase = pendingKey.formattedAsString(),
-                    sessionPaths = currentSessionPaths,
-                )
+                val sessionData = client.snapshotSession(currentSessionPaths, pendingKey, LoginType.OIDC)
                 finalizeClientCreation(sessionData)
             }.mapFailure { failure ->
                 Timber.e(failure, "Failed to login with OAuth")
@@ -355,13 +350,7 @@ class RustMatrixAuthenticationService(
                 }
                 // Ensure that the user is not already logged in with the same account
                 ensureNotAlreadyLoggedIn(client)
-                val sessionData = client.session()
-                    .toSessionData(
-                        isTokenValid = true,
-                        loginType = LoginType.QR,
-                        passphrase = pendingKey.formattedAsString(),
-                        sessionPaths = emptySessionPaths,
-                    )
+                val sessionData = client.snapshotSession(emptySessionPaths, pendingKey, LoginType.QR)
                 finalizeClientCreation(sessionData)
             }.mapFailure {
                 when (it) {

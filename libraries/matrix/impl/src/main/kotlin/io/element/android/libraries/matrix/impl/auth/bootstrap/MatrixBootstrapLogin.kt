@@ -14,6 +14,7 @@ import io.element.android.libraries.sessionstorage.api.LoginType
 import io.element.android.libraries.sessionstorage.api.SessionData
 import io.element.android.libraries.sessionstorage.api.SessionStore
 import org.matrix.rustcomponents.sdk.Client
+import org.matrix.rustcomponents.sdk.Session
 
 /** Journal the self-created token session, then let the normal native finalizer restore the exact store. */
 @Inject
@@ -46,4 +47,26 @@ class MatrixBootstrapLogin(
     }
 
     fun finish(userId: String, deviceId: String) = journal.finish(userId, deviceId)
+
+    suspend fun importSession(
+        client: Client, access: String, refresh: String?, userId: String, deviceId: String, paths: SessionPaths, key: ClientSecret,
+    ): SessionData {
+        require(journal.read() == null) { "Restore the pending native device first" }
+        require(access.isNotBlank() && userId.startsWith("@") && deviceId.isNotBlank())
+        require(sessions.getSession(userId) == null) { "This account already has a native device; keep its original state" }
+        return Session(
+            accessToken = access,
+            refreshToken = refresh,
+            userId = userId,
+            deviceId = deviceId,
+            homeserverUrl = client.homeserver(),
+            oauthData = null,
+            slidingSyncVersion = client.slidingSyncVersion(),
+        ).toSessionData(
+            isTokenValid = true,
+            loginType = LoginType.SSO,
+            passphrase = key.formattedAsString(),
+            sessionPaths = paths,
+        ).also(journal::write)
+    }
 }

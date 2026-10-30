@@ -39,7 +39,7 @@ class OnboardingCompletionTest {
         every { client.syncService.syncState } returns sync
         every { http.base("https://example") } returns "https://example"
         coEvery { provider.getOrRestore(SessionId("@agent:example")) } returns Result.success(client)
-        val service = OnboardingCompletion(mockk(), mockk(), provider, http)
+        val service = OnboardingCompletion(mockk(), mockk(), provider, http, mockk(relaxed = true))
         assertThat(service.complete(attempt, session)).isFalse()
         coVerify(exactly = 0) { http.request(any(), any(), any(), any()) }
         sync.value = SyncState.Running

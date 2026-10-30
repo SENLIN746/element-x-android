@@ -68,6 +68,41 @@ class BootstrapSessionJournalTest {
     }
 
     @Test
+    fun `long term account grant is durable before native restore and cannot overwrite a published session`() = runTest {
+        val paths = SessionPaths(File("/private/account/session"), File("/private/account/cache"))
+        every { client.homeserver() } returns "https://example"
+        every { client.slidingSyncVersion() } returns SlidingSyncVersion.NATIVE
+        coEvery { sessions.getSession("@agent:example") } returns null
+        val bootstrap = MatrixBootstrapLogin(journal(), sessions, tokens)
+        val imported = bootstrap.importSession(
+            client,
+            "synthetic-access",
+            "synthetic-refresh",
+            "@agent:example",
+            "same-device",
+            paths,
+            ClientSecret.Passphrase("synthetic-store-key")
+        )
+        coVerify(exactly = 0) { client.restoreSession(any()) }
+        val saved = requireNotNull(journal().read())
+        assertThat(saved.sessionPath).isEqualTo(imported.sessionPath)
+        assertThat(saved.accessToken).isEqualTo("synthetic-access")
+        assertThat(saved.deviceId).isEqualTo("same-device")
+        assertThat(runCatching {
+            bootstrap.importSession(
+                client,
+                "other-access",
+                null,
+                "@agent:example",
+                "new-device",
+                paths,
+            ClientSecret.Passphrase("other-key")
+            )
+        }.isFailure).isTrue()
+        assertThat(journal().read()?.deviceId).isEqualTo("same-device")
+    }
+
+    @Test
     fun `foreign user or device response cannot become recovery material`() = runTest {
         coEvery { tokens.exchange(any(), any(), any()) } returns
             Session(

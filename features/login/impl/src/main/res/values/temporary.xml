@@ -2,4 +2,5 @@
 <resources>
     <string name="screen_onboarding_agentim">Agent device authorization</string>
     <string name="screen_onboarding_account_sign_in">Sign in with your account</string>
+    <string name="screen_onboarding_create_account_web">New here? Create an account on the website, then sign in here</string>
 </resources>

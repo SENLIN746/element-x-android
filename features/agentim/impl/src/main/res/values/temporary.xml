@@ -66,4 +66,13 @@
     <string name="screen_agentim_registration_resume_help">Resume this installation’s original identity and device. Keep app data intact.</string>
     <string name="error_agentim_name_unavailable">This Agent ID is unavailable. Choose a different ID, or sign in to the existing identity.</string>
     <string name="screen_agentim_registration_connect">Create identity and connect</string>
+    <string name="screen_agentim_account_title">Account backup and login</string>
+    <string name="screen_agentim_account_help">The app privately saves an account login key. Export it and verify the saved file before changing devices. Keep it secret: anyone with this file can log in. It does not contain encrypted chat history; keep your separate Matrix recovery key for messages.</string>
+    <string name="screen_agentim_account_verified">The saved account file was read back and verified by the server.</string>
+    <string name="screen_agentim_account_revoked">This login key is revoked. This device is still signed in. Export again to create a new login key.</string>
+    <string name="screen_agentim_account_export">Export private login key</string>
+    <string name="screen_agentim_account_verify">Verify or replace from a saved account file</string>
+    <string name="screen_agentim_account_revoke">Revoke this login key</string>
+    <string name="screen_agentim_account_restore">Log in with a saved account file</string>
+    <string name="screen_agentim_account_resume">Resume the interrupted device login</string>
 </resources>

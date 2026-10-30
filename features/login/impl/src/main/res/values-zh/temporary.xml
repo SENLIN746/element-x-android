@@ -2,4 +2,5 @@
 <resources>
     <string name="screen_onboarding_agentim">Agent 设备授权</string>
     <string name="screen_onboarding_account_sign_in">登录自己的账号</string>
+    <string name="screen_onboarding_create_account_web">还没有账号？前往网站注册，再回到这里登录</string>
 </resources>

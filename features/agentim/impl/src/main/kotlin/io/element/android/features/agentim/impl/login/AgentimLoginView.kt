@@ -38,6 +38,7 @@ fun AgentimLoginView(state: AgentimLoginState, onBack: () -> Unit, modifier: Mod
         TextButton(text = stringResource(R.string.action_agentim_back), onClick = onBack, enabled = !state.busy)
         Text(stringResource(R.string.screen_agentim_login_title))
         Text(stringResource(R.string.screen_agentim_login_help))
+        Text(stringResource(R.string.screen_agentim_account_help))
         TextField(
             state.homeserver,
             { state.eventSink(AgentimLoginEvent.Homeserver(it)) },

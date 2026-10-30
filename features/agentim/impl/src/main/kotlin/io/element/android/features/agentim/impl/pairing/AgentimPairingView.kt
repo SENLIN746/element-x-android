@@ -26,7 +26,7 @@ import io.element.android.libraries.permissions.api.localnetwork.LocalNetworkPer
 
 /** Stateless view: only public pairing metadata is rendered or copied. */
 @Composable
-fun AgentimPairingView(state: AgentimPairingState, onBack: () -> Unit, onCreate: () -> Unit, modifier: Modifier = Modifier) {
+fun AgentimPairingView(state: AgentimPairingState, onBack: () -> Unit, onCreate: () -> Unit, modifier: Modifier = Modifier, onRestore: () -> Unit = {}) {
     Column(
         modifier.fillMaxSize().safeDrawingPadding().verticalScroll(rememberScrollState()).padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -92,6 +92,7 @@ fun AgentimPairingView(state: AgentimPairingState, onBack: () -> Unit, onCreate:
                     modifier = Modifier.fillMaxWidth()
                 )
                 TextButton(stringResource(R.string.screen_agentim_register), onClick = onCreate)
+                TextButton(stringResource(R.string.screen_agentim_account_restore), onClick = onRestore)
             }
         }
         Text(stringResource(R.string.screen_agentim_pair_boundary))

@@ -57,6 +57,11 @@ interface MatrixAuthenticationService {
     suspend fun loginWithAgentBootstrap(token: String, userId: String, deviceId: String): Result<SessionId> =
         Result.failure(UnsupportedOperationException("Public Agent onboarding is unavailable"))
 
+    /** Journals an already issued account-device session before native crypto initialization. */
+    suspend fun loginWithAccountSession(
+        accessToken: String, refreshToken: String?, userId: String, deviceId: String,
+    ): Result<SessionId> = Result.failure(UnsupportedOperationException("Account credential login is unavailable"))
+
     /*
      * OAuth part.
      */
