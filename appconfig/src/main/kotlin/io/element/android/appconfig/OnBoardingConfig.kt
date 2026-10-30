@@ -9,6 +9,6 @@
 package io.element.android.appconfig
 
 object OnBoardingConfig {
-    /** Whether the user can create an account using the app. */
-    const val CAN_CREATE_ACCOUNT = true
+    /** Normal accounts are provisioned by this service; Agent v2 enrollment is a separate feature. */
+    const val CAN_CREATE_ACCOUNT = false
 }

@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="screen_onboarding_agentim">Agent 设备授权</string>
+    <string name="screen_onboarding_account_sign_in">登录自己的账号</string>
+</resources>

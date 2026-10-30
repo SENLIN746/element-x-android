@@ -48,7 +48,6 @@ import io.element.android.libraries.designsystem.preview.PreviewsDayNight
 import io.element.android.libraries.designsystem.theme.components.Button
 import io.element.android.libraries.designsystem.theme.components.Icon
 import io.element.android.libraries.designsystem.theme.components.IconButton
-import io.element.android.libraries.designsystem.theme.components.IconSource
 import io.element.android.libraries.designsystem.theme.components.Text
 import io.element.android.libraries.designsystem.theme.components.TextButton
 import io.element.android.libraries.matrix.api.auth.OAuthDetails
@@ -284,29 +283,10 @@ private fun OnBoardingButtons(
     }
 
     ButtonColumnMolecule {
-        TextButton(
-            text = stringResource(R.string.screen_onboarding_agentim),
-            onClick = onAgentimClick,
-            enabled = state.loginModeState.loginMode !is AsyncData.Loading,
-            modifier = Modifier.fillMaxWidth(),
-        )
-        val signInButtonStringRes = if (state.canLoginWithQrCode || state.canCreateAccount) {
-            R.string.screen_onboarding_sign_in_manually
-        } else {
-            CommonStrings.action_continue
-        }
-        if (state.canLoginWithQrCode) {
-            Button(
-                text = stringResource(id = R.string.screen_onboarding_sign_in_with_qr_code),
-                leadingIcon = IconSource.Vector(CompoundIcons.QrCode()),
-                onClick = onSignInWithQrCode,
-                modifier = Modifier.fillMaxWidth()
-            )
-        }
         val defaultAccountProvider = state.defaultAccountProvider
         if (defaultAccountProvider == null) {
             Button(
-                text = stringResource(id = signInButtonStringRes),
+                text = stringResource(id = R.string.screen_onboarding_account_sign_in),
                 onClick = {
                     onSignIn(state.mustChooseAccountProvider)
                 },
@@ -334,6 +314,20 @@ private fun OnBoardingButtons(
                     .fillMaxWidth()
             )
         }
+        if (state.canLoginWithQrCode) {
+            TextButton(
+                text = stringResource(id = R.string.screen_onboarding_sign_in_with_qr_code),
+                onClick = onSignInWithQrCode,
+                enabled = !isLoading,
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+        TextButton(
+            text = stringResource(R.string.screen_onboarding_agentim),
+            onClick = onAgentimClick,
+            enabled = !isLoading,
+            modifier = Modifier.fillMaxWidth(),
+        )
         if (state.isAddingAccount.not()) {
             if (state.canReportBug) {
                 // Add a report problem text button. Use a Text since we need a special theme here.

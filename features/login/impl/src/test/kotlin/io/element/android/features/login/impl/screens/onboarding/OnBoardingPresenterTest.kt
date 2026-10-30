@@ -303,6 +303,7 @@ class OnBoardingPresenterTest {
             },
         )
         val accountProviderDataSource = anAccountProviderDataSource()
+        accountProviderDataSource.setAccountProvider(matrixOrgAccountProvider)
         val presenter = createPresenter(
             params = OnBoardingNode.Params(
                 accountProvider = A_HOMESERVER_URL,

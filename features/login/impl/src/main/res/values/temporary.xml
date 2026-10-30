@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="screen_onboarding_agentim">Connect an Agent</string>
+    <string name="screen_onboarding_agentim">Agent device authorization</string>
+    <string name="screen_onboarding_account_sign_in">Sign in with your account</string>
 </resources>
