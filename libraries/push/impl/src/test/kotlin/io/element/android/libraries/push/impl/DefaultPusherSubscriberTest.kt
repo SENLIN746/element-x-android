@@ -73,6 +73,7 @@ class DefaultPusherSubscriberTest {
         val matrixClient = FakeMatrixClient(
             pushersService = FakePushersService(
                 setHttpPusherResult = setHttpPusherResult,
+                unsetHttpPusherResult = { Result.success(Unit) },
             ),
         )
         val defaultPusherSubscriber = createDefaultPusherSubscriber(

@@ -8,7 +8,6 @@
 
 package io.element.android.libraries.pushproviders.unifiedpush
 
-import androidx.test.platform.app.InstrumentationRegistry
 import com.google.common.truth.Truth.assertThat
 import io.element.android.libraries.matrix.test.AN_EXCEPTION
 import io.element.android.libraries.matrix.test.A_SECRET
@@ -72,12 +71,36 @@ class DefaultRegisterUnifiedPushUseCaseTest : RobolectricTest() {
         assertThat(result.isSuccess).isFalse()
     }
 
+    @Test
+    fun `immediate callback is observed before connector returns`() = runTest {
+        val handler = EndpointRegistrationHandler()
+        val useCase = createDefaultRegisterUnifiedPushUseCase(
+            endpointRegistrationHandler = handler,
+            registration = UnifiedPushRegistration { _, secret, _ ->
+                handler.registrationDone(RegistrationResult(secret, Result.success(Unit)))
+            },
+        )
+        assertThat(useCase.execute(Distributor("ntfy", "ntfy"), A_SECRET, A_SESSION_ID).isSuccess).isTrue()
+    }
+
+    @Test
+    fun `another account callback cannot complete this registration`() = runTest {
+        val handler = EndpointRegistrationHandler()
+        val useCase = createDefaultRegisterUnifiedPushUseCase(
+            endpointRegistrationHandler = handler,
+            registration = UnifiedPushRegistration { _, _, _ ->
+                handler.registrationDone(RegistrationResult("another-secret", Result.success(Unit)))
+            },
+        )
+        assertThat(useCase.execute(Distributor("ntfy", "ntfy"), A_SECRET, A_SESSION_ID).isFailure).isTrue()
+    }
+
     private fun TestScope.createDefaultRegisterUnifiedPushUseCase(
-        endpointRegistrationHandler: EndpointRegistrationHandler
+        endpointRegistrationHandler: EndpointRegistrationHandler,
+        registration: UnifiedPushRegistration = UnifiedPushRegistration { _, _, _ -> },
     ): DefaultRegisterUnifiedPushUseCase {
-        val context = InstrumentationRegistry.getInstrumentation().context
         return DefaultRegisterUnifiedPushUseCase(
-            context = context,
+            registration = registration,
             endpointRegistrationHandler = endpointRegistrationHandler,
         )
     }

@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="screen_preferences_agentim">AgentIM profile, discovery and contacts</string>
+    <string name="screen_notification_settings_agentim_push_missing">Background notifications need a push service</string>
+    <string name="screen_notification_settings_agentim_push_setup">Install and enable a UnifiedPush distributor such as ntfy, then reopen Notifications from Settings and select it under Advanced settings. Run the notification test to check delivery. After a system force stop, reopen AgentIM.</string>
 </resources>

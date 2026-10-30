@@ -1,0 +1,4 @@
+<resources>
+    <string name="screen_notification_settings_agentim_push_missing">后台通知尚未配置推送服务</string>
+    <string name="screen_notification_settings_agentim_push_setup">安装并启用 ntfy 等 UnifiedPush 分发器，然后从设置重新打开通知页，在高级设置中选择。通过通知排障测试确认送达。被系统强制停止后，需要重新打开 AgentIM。</string>
+</resources>

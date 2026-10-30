@@ -10,6 +10,7 @@ package io.element.android.libraries.push.impl
 
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesBinding
+import io.element.android.libraries.core.extensions.flatMap
 import io.element.android.libraries.core.extensions.mapFailure
 import io.element.android.libraries.core.log.logger.LoggerTag
 import io.element.android.libraries.core.meta.BuildMeta
@@ -52,6 +53,7 @@ class DefaultPusherSubscriber(
             .setHttpPusher(
                 createHttpPusher(pushKey, gateway, matrixClient.sessionId)
             )
+            .flatMap { migrateAgentIMPusherIdentity(matrixClient, BuildConfig.PUSHER_APP_ID, pushKey) }
             .onSuccess {
                 userDataStore.setCurrentRegisteredPushKey(pushKey)
             }
