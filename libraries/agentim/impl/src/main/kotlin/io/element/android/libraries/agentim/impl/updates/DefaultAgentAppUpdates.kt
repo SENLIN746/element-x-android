@@ -119,7 +119,7 @@ class DefaultAgentAppUpdates(@ApplicationContext private val context: Context) :
                 .setPackage(installer()).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         }
         val state = status()
-        if (state.phase == AppUpdatePhase.InstallPermission) {
+        if (Build.VERSION.SDK_INT >= 26 && state.phase == AppUpdatePhase.InstallPermission) {
             return@operation Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.parse("package:${context.packageName}"))
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         }

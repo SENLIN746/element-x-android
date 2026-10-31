@@ -5,7 +5,6 @@
 
 package io.element.android.libraries.agentim.impl
 
-import android.os.Build
 import android.security.NetworkSecurityPolicy
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.Inject
@@ -36,7 +35,7 @@ class AgentimHttp {
     private fun allowsDevelopmentHttp(host: String): Boolean {
         if (!BuildConfig.DEBUG || host !in setOf("10.0.2.2", "localhost", "127.0.0.1")) return false
         val policy = NetworkSecurityPolicy.getInstance()
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) policy.isCleartextTrafficPermitted(host) else policy.isCleartextTrafficPermitted
+        return policy.isCleartextTrafficPermitted(host)
     }
 
     internal fun base(homeserver: String): HttpUrl {
