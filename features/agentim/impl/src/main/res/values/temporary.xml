@@ -75,4 +75,15 @@
     <string name="screen_agentim_account_revoke">Revoke this login key</string>
     <string name="screen_agentim_account_restore">Log in with a saved account file</string>
     <string name="screen_agentim_account_resume">Resume the interrupted device login</string>
+    <string name="agentim_update_busy">Checking update…</string>
+    <string name="agentim_update_failed">Update could not finish. Tap to retry.</string>
+    <string name="agentim_update_check">Check for app updates</string>
+    <string name="agentim_update_download">Download app update</string>
+    <string name="agentim_update_downloading">Downloading with Android</string>
+    <string name="agentim_update_install">Install verified update</string>
+    <string name="agentim_update_permission">Allow Android to install this update</string>
+    <string name="agentim_update_store">Update in your app store</string>
+    <string name="agentim_update_detail">Downloaded updates are checked before Android asks you to install. Your account and device data are kept.</string>
+    <string name="agentim_update_retry_detail">Your current app is intact. Cancel a failed download before trying again.</string>
+    <string name="agentim_update_cancel">Cancel and clear downloaded update</string>
 </resources>

@@ -19,6 +19,7 @@ import dev.zacsweers.metro.Assisted
 import dev.zacsweers.metro.AssistedInject
 import io.element.android.annotations.ContributesNode
 import io.element.android.compound.theme.ElementTheme
+import io.element.android.features.agentim.api.AgentimUpdatesEntryPoint
 import io.element.android.libraries.androidutils.browser.openUrlInChromeCustomTab
 import io.element.android.libraries.architecture.callback
 import io.element.android.libraries.di.SessionScope
@@ -29,6 +30,7 @@ class AboutNode(
     @Assisted buildContext: BuildContext,
     @Assisted plugins: List<Plugin>,
     private val presenter: AboutPresenter,
+    private val updates: AgentimUpdatesEntryPoint,
 ) : Node(buildContext, plugins = plugins) {
     interface Callback : Plugin {
         fun navigateToOssLicenses()
@@ -51,6 +53,7 @@ class AboutNode(
         val state = presenter.present()
         AboutView(
             state = state,
+            updateContent = { updates.Render() },
             onBackClick = ::navigateUp,
             onElementLegalClick = { elementLegal ->
                 onElementLegalClick(activity, isDark, elementLegal)

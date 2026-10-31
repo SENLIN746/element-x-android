@@ -26,12 +26,14 @@ fun AboutView(
     onOpenSourceLicensesClick: () -> Unit,
     onBackClick: () -> Unit,
     modifier: Modifier = Modifier,
+    updateContent: @Composable () -> Unit = {},
 ) {
     PreferencePage(
         modifier = modifier,
         onBackClick = onBackClick,
         title = stringResource(id = CommonStrings.common_about)
     ) {
+        updateContent()
         state.elementLegals.forEach { elementLegal ->
             ListItem(
                 content = {

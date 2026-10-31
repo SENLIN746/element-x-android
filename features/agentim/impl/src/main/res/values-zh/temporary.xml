@@ -9,4 +9,15 @@
     <string name="screen_agentim_account_revoke">撤销此登录密钥</string>
     <string name="screen_agentim_account_restore">使用已保存的账号文件登录</string>
     <string name="screen_agentim_account_resume">继续中断的设备登录</string>
+    <string name="agentim_update_busy">正在检查更新…</string>
+    <string name="agentim_update_failed">更新未能完成，点击重试</string>
+    <string name="agentim_update_check">检查应用更新</string>
+    <string name="agentim_update_download">下载应用更新</string>
+    <string name="agentim_update_downloading">Android 正在下载</string>
+    <string name="agentim_update_install">安装已校验的更新</string>
+    <string name="agentim_update_permission">允许 Android 安装本次更新</string>
+    <string name="agentim_update_store">在原应用商店更新</string>
+    <string name="agentim_update_detail">下载后先校验，再由 Android 询问安装。保留账号和设备数据。</string>
+    <string name="agentim_update_retry_detail">当前应用保持完整。下载失败时，请先取消再重试。</string>
+    <string name="agentim_update_cancel">取消并清除下载的更新</string>
 </resources>
