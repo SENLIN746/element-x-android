@@ -11,7 +11,7 @@ import io.element.android.features.agentim.api.AgentimUpdatesEntryPoint
 import io.element.android.libraries.di.SessionScope
 
 @ContributesBinding(SessionScope::class)
-internal class DefaultAgentimUpdatesEntryPoint(private val presenter: AppUpdatesPresenter) : AgentimUpdatesEntryPoint {
+class DefaultAgentimUpdatesEntryPoint(private val presenter: AppUpdatesPresenter) : AgentimUpdatesEntryPoint {
     @Composable
     override fun Render() {
         AppUpdatesView(presenter.present())

@@ -23,9 +23,9 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-internal enum class AppUpdateAction { Check, Download, Install, Cancel, Refresh, Pause }
+enum class AppUpdateAction { Check, Download, Install, Cancel, Refresh, Pause }
 
-internal data class AppUpdatesState(
+data class AppUpdatesState(
     val status: AppUpdateStatus = AppUpdateStatus(AppUpdatePhase.Current),
     val busy: Boolean = false,
     val failed: Boolean = false,
@@ -33,7 +33,7 @@ internal data class AppUpdatesState(
 )
 
 @Inject
-internal class AppUpdatesPresenter(private val updates: AgentAppUpdates, @ApplicationContext private val context: Context) : Presenter<AppUpdatesState> {
+class AppUpdatesPresenter(private val updates: AgentAppUpdates, @ApplicationContext private val context: Context) : Presenter<AppUpdatesState> {
     @Composable
     override fun present(): AppUpdatesState {
         var state by remember { mutableStateOf(AppUpdatesState()) }
