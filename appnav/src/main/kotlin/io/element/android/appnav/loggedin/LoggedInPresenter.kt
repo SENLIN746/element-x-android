@@ -76,9 +76,10 @@ class LoggedInPresenter(
         val ignoreRegistrationError by remember {
             pushService.ignoreRegistrationError(matrixClient.sessionId)
         }.collectAsState(initial = false)
+        var pushRefresh by remember { mutableStateOf(0) }
         val pusherRegistrationState = remember<MutableState<AsyncData<Unit>>> { mutableStateOf(AsyncData.Uninitialized) }
         LaunchedEffect(Unit) { preloadAccountManagementUrl() }
-        LaunchedEffect(Unit) {
+        LaunchedEffect(pushRefresh) {
             sessionVerificationService.sessionVerifiedStatus
                 .onEach { sessionVerifiedStatus ->
                     when (sessionVerifiedStatus) {
@@ -160,6 +161,7 @@ class LoggedInPresenter(
 
         fun handleEvent(event: LoggedInEvent) {
             when (event) {
+                LoggedInEvent.RefreshPusherRegistration -> pushRefresh++
                 is LoggedInEvent.CloseErrorDialog -> {
                     pusherRegistrationState.value = AsyncData.Uninitialized
                     if (event.doNotShowAgain) {

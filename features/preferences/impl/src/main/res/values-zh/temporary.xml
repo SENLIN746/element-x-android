@@ -1,4 +1,13 @@
 <resources>
     <string name="screen_notification_settings_agentim_push_missing">后台通知尚未配置推送服务</string>
     <string name="screen_notification_settings_agentim_push_setup">安装并启用 ntfy 等 UnifiedPush 分发器，然后从设置重新打开通知页，在高级设置中选择。通过通知排障测试确认送达。被系统强制停止后，需要重新打开 AgentIM。</string>
+    <string name="agentim_push_checking">正在检查通知服务…</string>
+    <string name="agentim_push_verify">验证此设备以启用推送</string>
+    <string name="agentim_push_verify_detail">继续使用安全设备验证，保留现有密钥。</string>
+    <string name="agentim_push_distributor">设置通知服务</string>
+    <string name="agentim_push_distributor_detail">从 F-Droid 安装 ntfy，返回此页面后自动注册通知。</string>
+    <string name="agentim_push_registered">推送服务已注册</string>
+    <string name="agentim_push_registered_detail">运行通知排障，测试送达和系统设置。</string>
+    <string name="agentim_push_retry">重试推送注册</string>
+    <string name="agentim_push_failed">注册失败。请重试或运行通知排障。</string>
 </resources>

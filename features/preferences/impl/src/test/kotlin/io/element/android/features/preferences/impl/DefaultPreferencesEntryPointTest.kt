@@ -25,6 +25,7 @@ import io.element.android.libraries.troubleshoot.test.FakeNotificationTroubleSho
 import io.element.android.libraries.troubleshoot.test.FakePushHistoryEntryPoint
 import io.element.android.tests.testutils.lambda.lambdaError
 import io.element.android.tests.testutils.node.TestParentNode
+import io.mockk.mockk
 import org.junit.Rule
 import org.junit.Test
 
@@ -45,6 +46,7 @@ class DefaultPreferencesEntryPointTest {
                 lockScreenEntryPoint = FakeLockScreenEntryPoint(),
                 notificationTroubleShootEntryPoint = FakeNotificationTroubleShootEntryPoint(),
                 pushHistoryEntryPoint = FakePushHistoryEntryPoint(),
+                sessionVerificationEntryPoint = mockk(),
                 fileViewerEntryPoint = FakeFileViewerEntryPoint(),
                 logoutEntryPoint = FakeLogoutEntryPoint(),
                 openSourceLicensesEntryPoint = FakeOpenSourceLicensesEntryPoint(),

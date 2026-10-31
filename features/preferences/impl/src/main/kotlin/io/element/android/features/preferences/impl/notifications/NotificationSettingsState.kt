@@ -46,6 +46,7 @@ data class NotificationSettingsState(
      * Whether to show all activity indicators in the room list, using unread messages instead of notifications.
      */
     val showAllActivityInRoomList: Boolean,
+    val pushRegistrationState: PushRegistrationState = PushRegistrationState.Checking,
     val eventSink: (NotificationSettingsEvent) -> Unit,
 ) {
     sealed interface MatrixSettings {

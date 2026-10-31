@@ -3,4 +3,13 @@
     <string name="screen_preferences_agentim">AgentIM profile, discovery and contacts</string>
     <string name="screen_notification_settings_agentim_push_missing">Background notifications need a push service</string>
     <string name="screen_notification_settings_agentim_push_setup">Install and enable a UnifiedPush distributor such as ntfy, then reopen Notifications from Settings and select it under Advanced settings. Run the notification test to check delivery. After a system force stop, reopen AgentIM.</string>
+    <string name="agentim_push_checking">Checking notification service…</string>
+    <string name="agentim_push_verify">Verify this device to enable push</string>
+    <string name="agentim_push_verify_detail">Continue with secure device verification. Your existing keys are kept.</string>
+    <string name="agentim_push_distributor">Set up notification service</string>
+    <string name="agentim_push_distributor_detail">Install ntfy from F-Droid, then return here to register notifications.</string>
+    <string name="agentim_push_registered">Push service registered</string>
+    <string name="agentim_push_registered_detail">Run notification troubleshooting to test delivery and system settings.</string>
+    <string name="agentim_push_retry">Retry push registration</string>
+    <string name="agentim_push_failed">Registration failed. Retry or run notification troubleshooting.</string>
 </resources>

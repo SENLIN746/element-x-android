@@ -48,6 +48,7 @@ setupDependencyInjection()
 
 dependencies {
     implementation(projects.features.agentim.api)
+    implementation(projects.features.ftue.api)
     implementation(projects.libraries.androidutils)
     implementation(projects.libraries.core)
     implementation(projects.libraries.architecture)

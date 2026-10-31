@@ -28,6 +28,7 @@ class NotificationSettingsNode(
 ) : Node(buildContext, plugins = plugins) {
     interface Callback : Plugin {
         fun navigateToEditDefaultNotificationSetting(isOneToOne: Boolean)
+        fun navigateToVerifySession()
         fun navigateToTroubleshootNotifications()
     }
 
@@ -38,6 +39,7 @@ class NotificationSettingsNode(
         val state = presenter.present()
         NotificationSettingsView(
             state = state,
+            onVerifySession = callback::navigateToVerifySession,
             onOpenEditDefault = callback::navigateToEditDefaultNotificationSetting,
             onBackClick = ::navigateUp,
             onTroubleshootNotificationsClick = callback::navigateToTroubleshootNotifications,

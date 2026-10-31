@@ -63,6 +63,7 @@ fun NotificationSettingsView(
     onOpenEditDefault: (isOneToOne: Boolean) -> Unit,
     onTroubleshootNotificationsClick: () -> Unit,
     onBackClick: () -> Unit,
+    onVerifySession: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     OnLifecycleEvent { _, event ->
@@ -94,6 +95,7 @@ fun NotificationSettingsView(
 //                onCallsNotificationsChanged = { state.eventSink(NotificationSettingsEvent.SetCallNotificationsEnabled(it)) },
                 onInviteForMeNotificationsChange = { state.eventSink(NotificationSettingsEvent.SetInviteForMeNotificationsEnabled(it)) },
                 onTroubleshootNotificationsClick = onTroubleshootNotificationsClick,
+                onVerifySession = onVerifySession,
             )
         }
         AsyncActionView(
@@ -117,8 +119,9 @@ private fun NotificationSettingsContentView(
 //    onCallsNotificationsChanged: (Boolean) -> Unit,
     onInviteForMeNotificationsChange: (Boolean) -> Unit,
     onTroubleshootNotificationsClick: () -> Unit,
+    onVerifySession: () -> Unit,
 ) {
-    AgentIMPushSetup(state)
+    AgentIMPushSetup(state, onVerifySession, onTroubleshootNotificationsClick)
     val context = LocalContext.current
     val systemSettings: NotificationSettingsState.AppSettings = state.appSettings
     if (systemSettings.appNotificationsEnabled && !systemSettings.systemNotificationsEnabled) {

@@ -38,6 +38,7 @@ fun LoggedInView(
     OnLifecycleEvent { _, event ->
          if (event == Lifecycle.Event.ON_RESUME) {
             state.eventSink(LoggedInEvent.CheckSlidingSyncProxyAvailability)
+            state.eventSink(LoggedInEvent.RefreshPusherRegistration)
          }
     }
     Box(
@@ -91,7 +92,7 @@ fun LoggedInView(
     )
 }
 
-private fun Throwable.getReason(): String? {
+internal fun Throwable.getReason(): String? {
     return when (this) {
         is PusherRegistrationFailure.RegistrationFailure -> {
             if (isRegisteringAgain && clientException.isNetworkError()) {
@@ -101,9 +102,10 @@ private fun Throwable.getReason(): String? {
                 clientException.message ?: "Unknown error"
             }
         }
-        is PusherRegistrationFailure.AccountNotVerified -> null
-        is PusherRegistrationFailure.NoDistributorsAvailable -> "No distributors available"
-        is PusherRegistrationFailure.NoProvidersAvailable -> "No providers available"
+        // These prerequisites have actionable setup in notification preferences.
+        is PusherRegistrationFailure.AccountNotVerified,
+        is PusherRegistrationFailure.NoDistributorsAvailable,
+        is PusherRegistrationFailure.NoProvidersAvailable -> null
         else -> "Other error: $message"
     }
 }

@@ -16,7 +16,9 @@ import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.v2.runAndroidComposeUiTest
+import androidx.test.platform.app.InstrumentationRegistry
 import io.element.android.features.preferences.impl.R
 import io.element.android.libraries.architecture.AsyncAction
 import io.element.android.libraries.matrix.test.AN_EXCEPTION
@@ -174,7 +176,7 @@ class NotificationSettingsViewTest : RobolectricTest() {
                 eventSink = eventsRecorder
             ),
         )
-        clickOn(R.string.screen_notification_settings_invite_for_me_label)
+        scrollToPreference(R.string.screen_notification_settings_invite_for_me_label)
         eventsRecorder.assertList(
             listOf(
                 NotificationSettingsEvent.RefreshSystemNotificationsEnabled,
@@ -278,7 +280,7 @@ class NotificationSettingsViewTest : RobolectricTest() {
                 eventSink = eventsRecorder
             ),
         )
-        clickOn(R.string.screen_advanced_settings_push_provider_android)
+        scrollToPreference(R.string.screen_advanced_settings_push_provider_android)
         eventsRecorder.assertList(
             listOf(
                 NotificationSettingsEvent.RefreshSystemNotificationsEnabled,
@@ -342,6 +344,26 @@ class NotificationSettingsViewTest : RobolectricTest() {
             )
         )
     }
+    @Test
+    fun `push verification action uses the existing native verification callback`() = runAndroidComposeUiTest {
+        ensureCalledOnce { verify ->
+            setNotificationSettingsView(
+                state = aValidNotificationSettingsState().copy(pushRegistrationState = PushRegistrationState.NeedsVerification),
+                onVerifySession = verify,
+            )
+            scrollToPreference(R.string.agentim_push_verify)
+        }
+    }
+
+    @Test
+    fun `failed push setup exposes a retry action`() = runAndroidComposeUiTest {
+        val events = EventsRecorder<NotificationSettingsEvent>()
+        setNotificationSettingsView(
+            state = aValidNotificationSettingsState(eventSink = events).copy(pushRegistrationState = PushRegistrationState.Failed),
+        )
+        scrollToPreference(R.string.agentim_push_retry)
+        events.assertList(listOf(NotificationSettingsEvent.RefreshSystemNotificationsEnabled, NotificationSettingsEvent.RetryPushRegistration))
+    }
 }
 
 private fun AndroidComposeUiTest<ComponentActivity>.setNotificationSettingsView(
@@ -349,6 +371,7 @@ private fun AndroidComposeUiTest<ComponentActivity>.setNotificationSettingsView(
     onOpenEditDefault: (isOneToOne: Boolean) -> Unit = EnsureNeverCalledWithParam(),
     onTroubleshootNotificationsClick: () -> Unit = EnsureNeverCalled(),
     onBackClick: () -> Unit = EnsureNeverCalled(),
+    onVerifySession: () -> Unit = EnsureNeverCalled(),
 ) {
     setContent {
         NotificationSettingsView(
@@ -356,6 +379,12 @@ private fun AndroidComposeUiTest<ComponentActivity>.setNotificationSettingsView(
             onOpenEditDefault = onOpenEditDefault,
             onTroubleshootNotificationsClick = onTroubleshootNotificationsClick,
             onBackClick = onBackClick,
+            onVerifySession = onVerifySession,
         )
     }
+}
+
+private fun AndroidComposeUiTest<ComponentActivity>.scrollToPreference(resource: Int) {
+    val text = InstrumentationRegistry.getInstrumentation().targetContext.getString(resource)
+    onNodeWithText(text).performScrollTo().performClick()
 }

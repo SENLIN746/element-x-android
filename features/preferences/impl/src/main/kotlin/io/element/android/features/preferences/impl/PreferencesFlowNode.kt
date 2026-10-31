@@ -21,6 +21,7 @@ import dev.zacsweers.metro.Assisted
 import dev.zacsweers.metro.AssistedInject
 import io.element.android.annotations.ContributesNode
 import io.element.android.features.deactivation.api.AccountDeactivationEntryPoint
+import io.element.android.features.ftue.api.SessionVerificationEntryPoint
 import io.element.android.features.licenses.api.OpenSourceLicensesEntryPoint
 import io.element.android.features.lockscreen.api.LockScreenEntryPoint
 import io.element.android.features.logout.api.LogoutEntryPoint
@@ -58,6 +59,7 @@ import kotlinx.parcelize.Parcelize
 class PreferencesFlowNode(
     @Assisted buildContext: BuildContext,
     @Assisted plugins: List<Plugin>,
+    private val sessionVerificationEntryPoint: SessionVerificationEntryPoint,
     private val lockScreenEntryPoint: LockScreenEntryPoint,
     private val notificationTroubleShootEntryPoint: NotificationTroubleShootEntryPoint,
     private val pushHistoryEntryPoint: PushHistoryEntryPoint,
@@ -97,6 +99,9 @@ class PreferencesFlowNode(
 
         @Parcelize
         data object NotificationSettings : NavTarget
+
+        @Parcelize
+        data object VerifyForPush : NavTarget
 
         @Parcelize
         data object ModerationAndSafety : NavTarget
@@ -258,8 +263,20 @@ class PreferencesFlowNode(
             NavTarget.AnalyticsSettings -> {
                 createNode<AnalyticsSettingsNode>(buildContext)
             }
+            NavTarget.VerifyForPush -> sessionVerificationEntryPoint.createNode(
+                parentNode = this,
+                buildContext = buildContext,
+                callback = object : SessionVerificationEntryPoint.Callback {
+                    override fun onDone() {
+                        backstack.pop()
+                    }
+                },
+            )
             NavTarget.NotificationSettings -> {
                 val notificationSettingsCallback = object : NotificationSettingsNode.Callback {
+                    override fun navigateToVerifySession() {
+                        backstack.push(NavTarget.VerifyForPush)
+                    }
                     override fun navigateToEditDefaultNotificationSetting(isOneToOne: Boolean) {
                         backstack.push(NavTarget.EditDefaultNotificationSetting(isOneToOne))
                     }

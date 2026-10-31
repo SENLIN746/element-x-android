@@ -23,7 +23,6 @@ import androidx.compose.runtime.setValue
 import dev.zacsweers.metro.Inject
 import io.element.android.features.preferences.impl.R
 import io.element.android.libraries.architecture.AsyncAction
-import io.element.android.libraries.architecture.AsyncData
 import io.element.android.libraries.architecture.Presenter
 import io.element.android.libraries.architecture.runUpdatingStateNoSuccess
 import io.element.android.libraries.core.coroutine.CoroutineDispatchers
@@ -41,25 +40,15 @@ import io.element.android.libraries.push.api.PushService
 import io.element.android.libraries.push.api.notifications.NotificationSoundUpdater
 import io.element.android.libraries.push.api.notifications.SoundDisplayNameResolver
 import io.element.android.libraries.push.api.notifications.sound.NotificationSoundCopier
-import io.element.android.libraries.push.api.notifications.sound.NotificationSoundCopier.CopyResult
-import io.element.android.libraries.push.api.notifications.sound.NotificationSoundCopier.SoundSlot
-import io.element.android.libraries.pushproviders.api.Distributor
-import io.element.android.libraries.pushproviders.api.PushProvider
 import io.element.android.libraries.pushstore.api.UserPushStore
 import io.element.android.libraries.pushstore.api.UserPushStoreFactory
 import io.element.android.services.toolbox.api.strings.StringProvider
-import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.debounce
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
-import kotlinx.coroutines.withContext
-import timber.log.Timber
 import kotlin.time.Duration.Companion.seconds
 
 @Inject
@@ -80,13 +69,13 @@ class NotificationSettingsPresenter(
     private val featureFlagService: FeatureFlagService,
     private val dispatchers: CoroutineDispatchers,
 ) : Presenter<NotificationSettingsState> {
-    // Serializes the pick → copy → persist → recreate pipeline per slot. The copier already locks
-    // its `<slot>.tmp` file, but the persist+recreate window outside the copier is unprotected;
-    // without this, two rapid picks (e.g. an automation or accessibility service firing back-to-
-    // back events) could interleave and leave the channel id pointing at the older version while
-    // DataStore reflects the newer one.
-    private val messageSoundLock = Mutex()
-    private val callRingtoneLock = Mutex()
+    private val soundActions = NotificationSoundSettingsActions(
+        appPreferencesStore,
+        notificationSoundUpdater,
+        notificationSoundCopier,
+        soundDisplayNameResolver,
+        stringProvider,
+    )
 
     @Composable
     override fun present(): NotificationSettingsState {
@@ -113,37 +102,14 @@ class NotificationSettingsPresenter(
             observeNotificationSettings(matrixSettings, changeNotificationSettingAction)
         }
 
-        // List of PushProvider -> Distributor
-        // Getting the distributors can query the PackageManager and the Play Services, so do it off the main thread
-        val distributors by produceState(emptyList<Pair<PushProvider, Distributor>>()) {
-            value = withContext(dispatchers.io) {
-                pushService.getAvailablePushProviders()
-                    .flatMap { pushProvider ->
-                        pushProvider.getDistributors().map { distributor ->
-                            pushProvider to distributor
-                        }
-                    }
-            }
-        }
-        // List of Distributors
-        val availableDistributors = remember(distributors) {
-            distributors.map { it.second }.toImmutableList()
-        }
-
-        var currentDistributor by remember { mutableStateOf<AsyncData<Distributor>>(AsyncData.Uninitialized) }
         var refreshPushProvider by remember { mutableIntStateOf(0) }
-
-        LaunchedEffect(refreshPushProvider) {
-            val p = pushService.getCurrentPushProvider(matrixClient.sessionId)
-            val distributor = p?.getCurrentDistributor(matrixClient.sessionId)
-            currentDistributor = if (distributor != null) {
-                AsyncData.Success(distributor)
-            } else {
-                AsyncData.Failure(Exception("Failed to get current push provider"))
-            }
-        }
-
-        var showChangePushProviderDialog by remember { mutableStateOf(false) }
+        val pushSettings = rememberNotificationPushSettings(
+            matrixClient,
+            pushService,
+            dispatchers,
+            appNotificationsEnabled,
+            refreshPushProvider,
+        )
 
         val messageSound by remember { appPreferencesStore.getMessageSoundFlow() }.collectAsState(initial = NotificationSound.SystemDefault)
         val callRingtone by remember { appPreferencesStore.getCallRingtoneFlow() }.collectAsState(initial = NotificationSound.SystemDefault)
@@ -171,8 +137,8 @@ class NotificationSettingsPresenter(
             callRingtone
         }
 
-        val messageSoundDisplayName = probeSoundDisplayName(effectiveMessageSound, persistedMessageSoundTitle, defaultLabel)
-        val callRingtoneDisplayName = probeSoundDisplayName(effectiveCallRingtone, persistedCallRingtoneTitle, defaultLabel)
+        val messageSoundDisplayName = soundActions.probeSoundDisplayName(effectiveMessageSound, persistedMessageSoundTitle, defaultLabel)
+        val callRingtoneDisplayName = soundActions.probeSoundDisplayName(effectiveCallRingtone, persistedCallRingtoneTitle, defaultLabel)
 
         var messageSoundCopyError by remember { mutableStateOf(false) }
         var callRingtoneCopyError by remember { mutableStateOf(false) }
@@ -181,30 +147,6 @@ class NotificationSettingsPresenter(
         var showCallRingtoneDialog by remember { mutableStateOf(false) }
         var pendingCallRingtonePickerLaunch by remember { mutableIntStateOf(0) }
 
-        fun CoroutineScope.changePushProvider(
-            data: Pair<PushProvider, Distributor>?
-        ) = launch {
-            showChangePushProviderDialog = false
-            data ?: return@launch
-            val (pushProvider, distributor) = data
-            // No op if the distributor is the same.
-            if (distributor == currentDistributor.dataOrNull()) return@launch
-            currentDistributor = AsyncData.Loading(currentDistributor.dataOrNull())
-            pushService.registerWith(
-                matrixClient = matrixClient,
-                pushProvider = pushProvider,
-                distributor = distributor
-            )
-                .fold(
-                    {
-                        refreshPushProvider++
-                    },
-                    {
-                        currentDistributor = AsyncData.Failure(it)
-                    }
-                )
-        }
-
         val showAllActivityInRoomList by produceState(false) {
             featureFlagService.isFeatureEnabledFlow(ShowAllActivityInRoomListFeature)
                 .collect { value = it }
@@ -212,6 +154,7 @@ class NotificationSettingsPresenter(
 
         fun handleEvent(event: NotificationSettingsEvent) {
             when (event) {
+                NotificationSettingsEvent.RetryPushRegistration -> pushSettings.retry()
                 is NotificationSettingsEvent.SetAtRoomNotificationsEnabled -> {
                     localCoroutineScope.setAtRoomNotificationsEnabled(event.enabled, changeNotificationSettingAction)
                 }
@@ -228,13 +171,14 @@ class NotificationSettingsPresenter(
                 NotificationSettingsEvent.FixConfigurationMismatch -> localCoroutineScope.fixConfigurationMismatch(matrixSettings)
                 NotificationSettingsEvent.RefreshSystemNotificationsEnabled -> {
                     systemNotificationsEnabled.value = systemNotificationsEnabledProvider.notificationsEnabled()
+                    refreshPushProvider++
                     refreshFullScreenIntentSettings++
                 }
                 NotificationSettingsEvent.ClearNotificationChangeError -> changeNotificationSettingAction.value = AsyncAction.Uninitialized
-                NotificationSettingsEvent.ChangePushProvider -> showChangePushProviderDialog = true
-                NotificationSettingsEvent.CancelChangePushProvider -> showChangePushProviderDialog = false
-                is NotificationSettingsEvent.SetPushProvider -> localCoroutineScope.changePushProvider(distributors.getOrNull(event.index))
-                is NotificationSettingsEvent.SetMessageSound -> applyMessageSound(
+                NotificationSettingsEvent.ChangePushProvider -> pushSettings.openPicker()
+                NotificationSettingsEvent.CancelChangePushProvider -> pushSettings.closePicker()
+                is NotificationSettingsEvent.SetPushProvider -> pushSettings.select(event.index)
+                is NotificationSettingsEvent.SetMessageSound -> soundActions.applyMessageSound(
                     sound = event.sound,
                     sessionCoroutineScope = sessionCoroutineScope,
                     onCopyError = { messageSoundCopyError = true },
@@ -243,7 +187,7 @@ class NotificationSettingsPresenter(
                 )
                 is NotificationSettingsEvent.SelectMessageSoundPreset -> {
                     showMessageSoundDialog = false
-                    applyMessageSound(
+                    soundActions.applyMessageSound(
                         sound = event.sound,
                         sessionCoroutineScope = sessionCoroutineScope,
                         onCopyError = { messageSoundCopyError = true },
@@ -259,7 +203,7 @@ class NotificationSettingsPresenter(
                 }
                 is NotificationSettingsEvent.SetCallRingtone -> {
                     legacyCallRingtone = null
-                    applyCallRingtone(
+                    soundActions.applyCallRingtone(
                         sound = event.sound,
                         sessionCoroutineScope = sessionCoroutineScope,
                         onCopyError = { callRingtoneCopyError = true },
@@ -270,7 +214,7 @@ class NotificationSettingsPresenter(
                 is NotificationSettingsEvent.SelectCallRingtonePreset -> {
                     showCallRingtoneDialog = false
                     legacyCallRingtone = null
-                    applyCallRingtone(
+                    soundActions.applyCallRingtone(
                         sound = event.sound,
                         sessionCoroutineScope = sessionCoroutineScope,
                         onCopyError = { callRingtoneCopyError = true },
@@ -303,9 +247,10 @@ class NotificationSettingsPresenter(
                 appNotificationsEnabled = appNotificationsEnabled,
             ),
             changeNotificationSettingAction = changeNotificationSettingAction.value,
-            currentPushDistributor = currentDistributor,
-            availablePushDistributors = availableDistributors,
-            showChangePushProviderDialog = showChangePushProviderDialog,
+            currentPushDistributor = pushSettings.current,
+            pushRegistrationState = pushSettings.registration,
+            availablePushDistributors = pushSettings.available,
+            showChangePushProviderDialog = pushSettings.showPicker,
             fullScreenIntentPermissionsState = key(refreshFullScreenIntentSettings) { fullScreenIntentPermissionsPresenter.present() },
             messageSound = NotificationSettingsState.SoundChannelUiState(
                 sound = effectiveMessageSound,
@@ -324,122 +269,6 @@ class NotificationSettingsPresenter(
             showAllActivityInRoomList = showAllActivityInRoomList,
             eventSink = ::handleEvent,
         )
-    }
-
-    private fun applyMessageSound(
-        sound: NotificationSound,
-        sessionCoroutineScope: CoroutineScope,
-        onCopyError: () -> Unit,
-        onCopySuccess: () -> Unit,
-        onChannelFailure: (Throwable) -> Unit,
-    ) {
-        sessionCoroutineScope.launch {
-            messageSoundLock.withLock {
-                // Re-selecting the current non-Custom sound is a no-op: skip the channel churn
-                // (delete + create round-trips through system_server) and the version bump. Custom
-                // still falls through so the copier refreshes the file from the (possibly updated)
-                // source URI.
-                if (sound !is NotificationSound.Custom && appPreferencesStore.getMessageSoundFlow().first() == sound) {
-                    onCopySuccess()
-                    return@withLock
-                }
-                val resolved = resolvePickedSound(sound, SoundSlot.Message, onCopyError) ?: return@withLock
-                runCatchingExceptions {
-                    onCopySuccess()
-                    val newVersion = appPreferencesStore.setMessageSoundAndIncrementVersion(resolved.first, resolved.second)
-                    notificationSoundUpdater.recreateNoisyChannel(resolved.first, newVersion)
-                    // Non-Custom picks bypass the copier, so they don't sweep the prior Custom file
-                    // inline. Drop it now that the new channel no longer references it.
-                    if (resolved.first !is NotificationSound.Custom) {
-                        notificationSoundCopier.deleteStoredSoundFor(SoundSlot.Message)
-                    }
-                }.onFailure(onChannelFailure)
-            }
-        }
-    }
-
-    private fun applyCallRingtone(
-        sound: NotificationSound,
-        sessionCoroutineScope: CoroutineScope,
-        onCopyError: () -> Unit,
-        onCopySuccess: () -> Unit,
-        onChannelFailure: (Throwable) -> Unit,
-    ) {
-        sessionCoroutineScope.launch {
-            callRingtoneLock.withLock {
-                if (sound !is NotificationSound.Custom && appPreferencesStore.getCallRingtoneFlow().first() == sound) {
-                    onCopySuccess()
-                    return@withLock
-                }
-                val resolved = resolvePickedSound(sound, SoundSlot.Call, onCopyError) ?: return@withLock
-                runCatchingExceptions {
-                    onCopySuccess()
-                    val newVersion = appPreferencesStore.setCallRingtoneAndIncrementVersion(resolved.first, resolved.second)
-                    notificationSoundUpdater.recreateRingingCallChannel(resolved.first, newVersion)
-                    if (resolved.first !is NotificationSound.Custom) {
-                        notificationSoundCopier.deleteStoredSoundFor(SoundSlot.Call)
-                    }
-                }.onFailure(onChannelFailure)
-            }
-        }
-    }
-
-    /**
-     * Custom rows prefer [persistedTitle] (captured at copy time), fall back to a live resolver
-     * probe for legacy data, then to a localised "Custom" — never to [defaultLabel], so an
-     * unresolvable Custom isn't mislabelled as Default.
-     */
-    @Composable
-    private fun probeSoundDisplayName(
-        sound: NotificationSound,
-        persistedTitle: String?,
-        defaultLabel: String,
-    ): String = when (sound) {
-        NotificationSound.SystemDefault -> defaultLabel
-        NotificationSound.ElementDefault -> stringProvider.getString(R.string.screen_notification_settings_sound_element_default)
-        NotificationSound.ElementFade -> stringProvider.getString(R.string.screen_notification_settings_sound_element_fade)
-        NotificationSound.Silent -> stringProvider.getString(R.string.screen_notification_settings_sound_silent)
-        is NotificationSound.Custom -> {
-            val nonBlankPersisted = persistedTitle?.takeUnless { it.isBlank() }
-            if (nonBlankPersisted != null) {
-                nonBlankPersisted
-            } else {
-                val customFallback = stringProvider.getString(R.string.screen_notification_settings_sound_custom_fallback)
-                val resolved by produceState(initialValue = "", sound.uri) {
-                    val title = soundDisplayNameResolver.resolveCustomSoundTitle(sound.uri)
-                    value = title?.takeUnless { it.isBlank() } ?: customFallback
-                }
-                resolved
-            }
-        }
-    }
-
-    /**
-     * For a Custom pick, copies into app-private storage and returns (FileProvider URI, title).
-     * Returns null on copy failure after invoking [onCopyError]. Pass-through for SystemDefault /
-     * Silent.
-     */
-    private suspend fun resolvePickedSound(
-        requested: NotificationSound,
-        slot: SoundSlot,
-        onCopyError: () -> Unit,
-    ): Pair<NotificationSound, String?>? {
-        if (requested !is NotificationSound.Custom) return requested to null
-        return when (val result = notificationSoundCopier.copyToAppFiles(requested.uri, slot)) {
-            is CopyResult.Success -> NotificationSound.Custom(result.fileProviderUriString) to result.displayName
-            is CopyResult.Failure -> {
-                Timber.w(result.cause, "Notification sound copy failed for slot=%s", slot)
-                onCopyError()
-                null
-            }
-            CopyResult.UnplayableSource,
-            CopyResult.UnplayableCopy,
-            CopyResult.FileTooLarge -> {
-                Timber.w("Notification sound rejected: result=%s slot=%s", result::class.simpleName, slot)
-                onCopyError()
-                null
-            }
-        }
     }
 
     @OptIn(FlowPreview::class)
@@ -532,9 +361,7 @@ class NotificationSettingsPresenter(
 
     private fun CoroutineScope.setNotificationsEnabled(userPushStore: UserPushStore, enabled: Boolean) = launch {
         userPushStore.setNotificationEnabledForDevice(enabled)
-        if (enabled) {
-            pushService.ensurePusherIsRegistered(matrixClient)
-        } else {
+        if (!enabled) {
             pushService.getCurrentPushProvider(matrixClient.sessionId)?.unregister(matrixClient)
         }
     }
